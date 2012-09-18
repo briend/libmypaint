@@ -22,8 +22,8 @@ typedef struct {
     int tx;
     int ty;
     gboolean readonly;
-    guint16 *buffer;
-    gpointer context; /* Only to be used by the surface implementations. */
+    float *buffer;
+    gpointer context; /* Only to be used by the surface implemenations. */
     int thread_id;
     int mipmap_level;
 } MyPaintTileRequest;
