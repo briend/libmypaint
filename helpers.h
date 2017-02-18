@@ -23,6 +23,24 @@ hsv_to_rgb_float (float *h_, float *s_, float *v_);
 void
 rgb_to_hsv_float (float *r_ /*h*/, float *g_ /*s*/, float *b_ /*v*/);
 
+void
+hcy_to_rgb_float (float *h_, float *c_, float *y_);
+
+void
+rgb_to_hcy_float (float *r_, float *g_, float *b_);
+
 float rand_gauss (RngDouble * rng);
+
+float mod_arith(float a, float N);
+
+float smallest_angular_difference(float angleA, float angleB);
+
+void
+srgb_to_rgb_float (float *r_, float *g_, float *b_, float gamma);
+
+void
+rgb_to_srgb_float (float *r_, float *g_, float *b_, float gamma);
+
+float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gboolean get, float smudge_darken, float smudge_desat);
 
 #endif // HELPERS_H
