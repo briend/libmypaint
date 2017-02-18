@@ -18,6 +18,8 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <math.h>
+#include "fastapprox/fastpow.h"
 
 #include "helpers.h"
 #include "brushmodes.h"
@@ -66,7 +68,62 @@ void draw_dab_pixels_BlendMode_Normal (float *mask,
     }
 }
 
+void draw_dab_pixels_BlendMode_Normal_Paint (float *mask,
+                                       float *rgba_buffer, DabBounds *b,
+                                       float color_r,
+                                       float color_g,
+                                       float color_b,
+                                       float opacity) {
 
+    for (int yp = b->y0; yp <= b->y1; yp++) {
+      for (int xp = b->x0; xp <= b->x1; xp++) {
+          const int offset = (yp*TILE_SIZE)+xp;
+          float *rgba = rgba_buffer + (offset*4);
+
+          float opa_a = mask[offset]*opacity; // topAlpha
+          float opa_b = 1.0-opa_a; // bottomAlpha
+          rgba[3] = opa_a + opa_b * rgba[3];
+          rgba[0] = opa_a * color_r + opa_b*rgba[0];
+          rgba[1] = opa_a * color_g + opa_b*rgba[1];
+          rgba[2] = opa_a * color_b + opa_b*rgba[2];
+      }
+    }
+}
+
+//Posterize.  Basically exactly like GIMP's posterize
+//reduces colors by adjustable amount (posterize_num).
+//posterize the canvas, then blend that via opacity
+//does not affect alpha
+
+void draw_dab_pixels_BlendMode_Posterize (float * mask,
+                                          float * rgba,
+                                          DabBounds *b,
+                                          uint16_t posterize,
+                                          uint16_t posterize_num) {
+
+  while (1) {
+    for (; mask[0]; mask++, rgba+=4) {
+     
+      float r = (float)rgba[0] / (1<<15);
+      float g = (float)rgba[1] / (1<<15);
+      float b = (float)rgba[2] / (1<<15);
+
+      uint32_t post_r = (1<<15) * ROUND(r * posterize_num) / posterize_num;
+      uint32_t post_g = (1<<15) * ROUND(g * posterize_num) / posterize_num;
+      uint32_t post_b = (1<<15) * ROUND(b * posterize_num) / posterize_num;
+      
+      uint32_t opa_a = mask[0]*(uint32_t)opacity/(1<<15); // topAlpha
+      uint32_t opa_b = (1<<15)-opa_a; // bottomAlpha
+      rgba[0] = (opa_a*post_r + opa_b*rgba[0])/(1<<15);
+      rgba[1] = (opa_a*post_g + opa_b*rgba[1])/(1<<15);
+      rgba[2] = (opa_a*post_b + opa_b*rgba[2])/(1<<15);
+
+    }
+    if (!mask[1]) break;
+    rgba += mask[1];
+    mask += 2;
+  }
+};
 
 // Colorize: apply the source hue and saturation, retaining the target
 // brightness. Same thing as in the PDF spec addendum, and upcoming SVG
@@ -85,6 +142,7 @@ void draw_dab_pixels_BlendMode_Normal (float *mask,
 static const float LUMA_RED_COEFF   = 0.3;
 static const float LUMA_GREEN_COEFF = 0.59;
 static const float LUMA_BLUE_COEFF  = 0.11;
+
 
 // See also http://en.wikipedia.org/wiki/YCbCr
 
@@ -229,9 +287,63 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser (float *mask,
   }
 }
 
+void draw_dab_pixels_BlendMode_Normal_and_Eraser_Paint (float *mask,
+                                                  float *rgba_buffer,
+                                                  DabBounds *b,
+                                                  float color_r,
+                                                  float color_g,
+                                                  float color_b,
+                                                  float color_a,
+                                                  float opacity) {
+
+  //printf("brusmodes 227 colors are %f, %f, %f, %f, %f\n", color_r, color_g, color_b, opacity, color_a);
+  for (int yp = b->y0; yp <= b->y1; yp++) {
+    for (int xp = b->x0; xp <= b->x1; xp++) {
+        const int offset = (yp*TILE_SIZE)+xp;
+        float *rgba = rgba_buffer + (offset*4);
+
+      float opa_a = mask[offset]*opacity; // topAlpha
+      float opa_b = 1.0-opa_a; // bottomAlpha
+      opa_a = opa_a * color_a;
+      rgba[3] = opa_a + opa_b * rgba[3];
+      rgba[0] = (opa_a*color_r + opa_b*rgba[0]);
+      rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
+      rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
+
+
+    }
+  }
+}
+
+
 // This is BlendMode_Normal with locked alpha channel.
 //
 void draw_dab_pixels_BlendMode_LockAlpha (float * mask,
+                                          float * rgba_buffer,
+                                          DabBounds *b,
+                                          float color_r,
+                                          float color_g,
+                                          float color_b,
+                                          float opacity) {
+
+  for (int yp = b->y0; yp <= b->y1; yp++) {
+    for (int xp = b->x0; xp <= b->x1; xp++) {
+        const int offset = (yp*TILE_SIZE)+xp;
+        float *rgba = rgba_buffer + (offset*4);
+
+        float opa_a = mask[offset]*opacity; // topAlpha
+        float opa_b = 1.0-opa_a; // bottomAlpha
+        
+        opa_a *= rgba[3];
+            
+        rgba[0] = (opa_a*color_r + opa_b*rgba[0]);
+        rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
+        rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
+    }
+  }
+}
+
+void draw_dab_pixels_BlendMode_LockAlpha_Paint (float * mask,
                                           float * rgba_buffer,
                                           DabBounds *b,
                                           float color_r,
@@ -302,4 +414,6 @@ void get_color_pixels_accumulate (float *mask,
   *sum_b += b;
   *sum_a += a;
 }
+
+
 
