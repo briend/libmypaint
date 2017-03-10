@@ -456,7 +456,7 @@ smallest_angular_difference(float angleA, float angleB)
   // mappings in critical places or extremely few events per second.
   //
   // note: parameters are is dx/ddab, ..., dtime/ddab (dab is the number, 5.0 = 5th dab)
-  void update_states_and_setting_values (MyPaintBrush *self, float step_ddab, float step_dx, float step_dy, float step_dpressure, float step_declination, float step_ascension, float step_dtime, float step_viewzoom, float step_viewrotation)
+  void update_states_and_setting_values (MyPaintBrush *self, float step_ddab, float step_dx, float step_dy, float step_dpressure, float step_declination, float step_ascension, float step_dtime, float step_viewzoom, float step_viewrotation, float step_barrel_rotation)
   {
     float pressure;
     float inputs[MYPAINT_BRUSH_INPUTS_COUNT];
@@ -465,6 +465,7 @@ smallest_angular_difference(float angleA, float angleB)
     float gridmap_scale;
     float gridmap_scale_x;
     float gridmap_scale_y;
+    float barrel_rotation;
 
     if (step_dtime < 0.0) {
       printf("Time is running backwards!\n");
@@ -496,6 +497,8 @@ smallest_angular_difference(float angleA, float angleB)
     if (self->states[MYPAINT_BRUSH_STATE_ACTUAL_Y] < 0.0) {
       self->states[MYPAINT_BRUSH_STATE_GRIDMAP_Y] = 256.0 - self->states[MYPAINT_BRUSH_STATE_GRIDMAP_Y];
     }
+
+    self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION] += step_barrel_rotation;
 
     float base_radius = expf(mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC]));
     
@@ -558,6 +561,8 @@ smallest_angular_difference(float angleA, float angleB)
     inputs[MYPAINT_BRUSH_INPUT_GRIDMAP_Y] = CLAMP(self->states[MYPAINT_BRUSH_STATE_GRIDMAP_Y], 0.0, 256.0);
 
     inputs[MYPAINT_BRUSH_INPUT_CUSTOM] = self->states[MYPAINT_BRUSH_STATE_CUSTOM_INPUT];
+    inputs[MYPAINT_BRUSH_INPUT_BARREL_ROTATION] = (mod(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION], 360) - 180.0); 
+
     if (self->print_inputs) {
       printf("press=% 4.3f, speed1=% 4.4f\tspeed2=% 4.4f\tstroke=% 4.3f\tcustom=% 4.3f\tviewzoom=% 4.3f\tviewrotation=% 4.3f\tasc=% 4.3f\tdir=% 4.3f\tdec=% 4.3f\tdabang=% 4.3f\tgridmapx=% 4.3f\tgridmapy=% 4.3fX=% 4.3f\tY=% 4.3f\n", (double)inputs[MYPAINT_BRUSH_INPUT_PRESSURE], (double)inputs[MYPAINT_BRUSH_INPUT_SPEED1], (double)inputs[MYPAINT_BRUSH_INPUT_SPEED2], (double)inputs[MYPAINT_BRUSH_INPUT_STROKE], (double)inputs[MYPAINT_BRUSH_INPUT_CUSTOM], (double)inputs[MYPAINT_BRUSH_INPUT_VIEWZOOM], (double)self->states[MYPAINT_BRUSH_STATE_VIEWROTATION], (double)inputs[MYPAINT_BRUSH_INPUT_TILT_ASCENSION], (double)inputs[MYPAINT_BRUSH_INPUT_DIRECTION], (double)inputs[MYPAINT_BRUSH_INPUT_TILT_DECLINATION], (double)self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_ANGLE], (double)inputs[MYPAINT_BRUSH_INPUT_GRIDMAP_X], (double)inputs[MYPAINT_BRUSH_INPUT_GRIDMAP_Y], (double)self->states[MYPAINT_BRUSH_STATE_ACTUAL_X], (double)self->states[MYPAINT_BRUSH_STATE_ACTUAL_Y]);
     }
@@ -1008,7 +1013,7 @@ smallest_angular_difference(float angleA, float angleB)
    */
   int mypaint_brush_stroke_to (MyPaintBrush *self, MyPaintSurface *surface,
                                 float x, float y, float pressure,
-                                float xtilt, float ytilt, double dtime, float viewzoom, float viewrotation)
+                                float xtilt, float ytilt, double dtime, float viewzoom, float viewrotation, float barrel_rotation)
   {
     const float max_dtime = 5;
 
@@ -1043,6 +1048,7 @@ smallest_angular_difference(float angleA, float angleB)
       pressure = 0.0;
       viewzoom = 0.0;
       viewrotation = 0.0;
+      barrel_rotation = 0.0;
     }
     // the assertion below is better than out-of-memory later at save time
     assert(x < 1e8 && y < 1e8 && x > -1e8 && y > -1e8);
@@ -1057,7 +1063,7 @@ smallest_angular_difference(float angleA, float angleB)
     if (dtime > 0.100 && pressure && self->states[MYPAINT_BRUSH_STATE_PRESSURE] == 0) {
       // Workaround for tablets that don't report motion events without pressure.
       // This is to avoid linear interpolation of the pressure between two events.
-      mypaint_brush_stroke_to (self, surface, x, y, 0.0, 90.0, 0.0, dtime-0.0001, viewzoom, viewrotation);
+      mypaint_brush_stroke_to (self, surface, x, y, 0.0, 90.0, 0.0, dtime-0.0001, viewzoom, viewrotation, 0.0);
       dtime = 0.0001;
     }
 
@@ -1149,7 +1155,7 @@ smallest_angular_difference(float angleA, float angleB)
     double dtime_left = dtime;
 
     float step_ddab, step_dx, step_dy, step_dpressure, step_dtime;
-    float step_declination, step_ascension, step_viewzoom, step_viewrotation;
+    float step_declination, step_ascension, step_viewzoom, step_viewrotation, step_barrel_rotation;
     while (dabs_moved + dabs_todo >= 1.0) { // there are dabs pending
       { // linear interpolation (nonlinear variant was too slow, see SVN log)
         float frac; // fraction of the remaining distance to move
@@ -1170,9 +1176,18 @@ smallest_angular_difference(float angleA, float angleB)
         step_ascension   = frac * smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_ASCENSION], tilt_ascension);
         step_viewzoom = viewzoom;
         step_viewrotation = viewrotation;
+        //FIXME -1 is reliable for sensing mouse or non-wheel enabled device, but my wacom stylus reports a valid barrel rotation of 0.0 (xinput -900).
+        //how can we tell the difference between a real barrel-rotation enabled stylus and one that is faking it?  Need manual setting in MyPaint do disable rotation?
+        if (barrel_rotation == -1.0) {
+          step_barrel_rotation = 0;
+          self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION] = 180;
+        } else {
+          //converts barrel_ration to degrees, offsets it 90 degrees to make the button at the top be zero.  Subtract ascension because it directly affects the rotation values.
+	        step_barrel_rotation	 = frac * smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION],barrel_rotation * 360 + 90 - self->states[MYPAINT_BRUSH_STATE_ASCENSION] -180.0);
+	      }
+      update_states_and_setting_values (self, step_ddab, step_dx, step_dy, step_dpressure, step_declination, step_ascension, step_dtime, step_viewzoom, step_viewrotation, step_barrel_rotation);
       }
 
-      update_states_and_setting_values (self, step_ddab, step_dx, step_dy, step_dpressure, step_declination, step_ascension, step_dtime, step_viewzoom, step_viewrotation);
       gboolean painted_now = prepare_and_draw_dab (self, surface);
       if (painted_now) {
         painted = YES;
@@ -1193,7 +1208,6 @@ smallest_angular_difference(float angleA, float angleB)
       // brush_count_dabs_to depends on the radius and the radius can
       // depend on something that changes much faster than just every
       // dab.
-
       step_ddab = dabs_todo; // the step "moves" the brush by a fraction of one dab
       step_dx        = x - self->states[MYPAINT_BRUSH_STATE_X];
       step_dy        = y - self->states[MYPAINT_BRUSH_STATE_Y];
@@ -1203,10 +1217,18 @@ smallest_angular_difference(float angleA, float angleB)
       step_dtime     = dtime_left;
       step_viewzoom  = viewzoom;
       step_viewrotation = viewrotation;
+      step_barrel_rotation  = smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION], barrel_rotation * 360 - self->states[MYPAINT_BRUSH_STATE_ASCENSION] -180.0);
+      if (barrel_rotation == -1.0) {
+        step_barrel_rotation = 0;
+        self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION] = 180;
+        }
+      else {
+	      step_barrel_rotation	 = smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION],barrel_rotation * 360 +90 - self->states[MYPAINT_BRUSH_STATE_ASCENSION] -180.0);
+	      }
 
       //dtime_left = 0; but that value is not used any more
 
-      update_states_and_setting_values (self, step_ddab, step_dx, step_dy, step_dpressure, step_declination, step_ascension, step_dtime, step_viewzoom, step_viewrotation);
+      update_states_and_setting_values (self, step_ddab, step_dx, step_dy, step_dpressure, step_declination, step_ascension, step_dtime, step_viewzoom, step_viewrotation, step_barrel_rotation);
     }
 
     // save the fraction of a dab that is already done now
