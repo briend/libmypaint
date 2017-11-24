@@ -82,9 +82,9 @@ void draw_dab_pixels_BlendMode_Normal (float *mask,
 // http://dvcs.w3.org/hg/FXTF/rawfile/tip/compositing/index.html.
 // Same as ITU Rec. BT.601 (SDTV) rounded to 2 decimal places.
 
-static const float LUMA_RED_COEFF   = 0.3 * (1<<15);
-static const float LUMA_GREEN_COEFF = 0.59 * (1<<15);
-static const float LUMA_BLUE_COEFF  = 0.11 * (1<<15);
+static const float LUMA_RED_COEFF   = 0.3;
+static const float LUMA_GREEN_COEFF = 0.59;
+static const float LUMA_BLUE_COEFF  = 0.11;
 
 // See also http://en.wikipedia.org/wiki/YCbCr
 
@@ -102,42 +102,42 @@ static const float LUMA_BLUE_COEFF  = 0.11 * (1<<15);
  */
 
 inline static void
-set_rgb16_lum_from_rgb16(const uint16_t topr,
-                         const uint16_t topg,
-                         const uint16_t topb,
-                         uint16_t *botr,
-                         uint16_t *botg,
-                         uint16_t *botb)
+set_rgb16_lum_from_rgb16(const float topr,
+                         const float topg,
+                         const float topb,
+                         float *botr,
+                         float *botg,
+                         float *botb)
 {
     // Spec: SetLum()
     // Colours potentially can go out of band to both sides, hence the
     // temporary representation inflation.
-    const uint16_t botlum = LUMA(*botr, *botg, *botb) / (1<<15);
-    const uint16_t toplum = LUMA(topr, topg, topb) / (1<<15);
-    const int16_t diff = botlum - toplum;
-    int32_t r = topr + diff;
-    int32_t g = topg + diff;
-    int32_t b = topb + diff;
+    const float botlum = LUMA(*botr, *botg, *botb);
+    const float toplum = LUMA(topr, topg, topb);
+    const float diff = botlum - toplum;
+    float r = topr + diff;
+    float g = topg + diff;
+    float b = topb + diff;
 
     // Spec: ClipColor()
     // Clip out of band values
-    int32_t lum = LUMA(r, g, b) / (1<<15);
-    int32_t cmin = MIN3(r, g, b);
-    int32_t cmax = MAX3(r, g, b);
+    float lum = LUMA(r, g, b);
+    float cmin = MIN3(r, g, b);
+    float cmax = MAX3(r, g, b);
     if (cmin < 0) {
         r = lum + (((r - lum) * lum) / (lum - cmin));
         g = lum + (((g - lum) * lum) / (lum - cmin));
         b = lum + (((b - lum) * lum) / (lum - cmin));
     }
-    if (cmax > (1<<15)) {
-        r = lum + (((r - lum) * ((1<<15)-lum)) / (cmax - lum));
-        g = lum + (((g - lum) * ((1<<15)-lum)) / (cmax - lum));
-        b = lum + (((b - lum) * ((1<<15)-lum)) / (cmax - lum));
-    }
+/*    if (cmax > (1<<15)) {*/
+/*        r = lum + (((r - lum) * ((1<<15)-lum)) / (cmax - lum));*/
+/*        g = lum + (((g - lum) * ((1<<15)-lum)) / (cmax - lum));*/
+/*        b = lum + (((b - lum) * ((1<<15)-lum)) / (cmax - lum));*/
+/*    }*/
 #ifdef HEAVY_DEBUG
-    assert((0 <= r) && (r <= (1<<15)));
-    assert((0 <= g) && (g <= (1<<15)));
-    assert((0 <= b) && (b <= (1<<15)));
+    assert(0 <= r);
+    assert(0 <= g);
+    assert(0 <= b);
 #endif
 
     *botr = r;
@@ -152,44 +152,44 @@ set_rgb16_lum_from_rgb16(const uint16_t topr,
 // coefficients for the Luma value.
 
 void
-draw_dab_pixels_BlendMode_Color (uint16_t * mask,
-                                 uint16_t * rgba_buffer, // b=bottom, premult
+draw_dab_pixels_BlendMode_Color (float * mask,
+                                 float * rgba_buffer, // b=bottom, premult
                                  DabBounds *b,
-                                 uint16_t color_r,  // }
-                                 uint16_t color_g,  // }-- a=top, !premult
-                                 uint16_t color_b,  // }
-                                 uint16_t opacity)
+                                 float color_r,  // }
+                                 float color_g,  // }-- a=top, !premult
+                                 float color_b,  // }
+                                 float opacity)
 {
 
     for (int yp = b->y0; yp <= b->y1; yp++) {
       for (int xp = b->x0; xp <= b->x1; xp++) {
         const int offset = (yp*TILE_SIZE)+xp;
-        uint16_t *rgba = rgba_buffer + (offset*4);
+        float *rgba = rgba_buffer + (offset*4);
 
       // De-premult
-      uint16_t r, g, b;
-      const uint16_t a = rgba[3];
+      float r, g, b;
+      const float a = rgba[3];
       r = g = b = 0;
       if (rgba[3] != 0) {
-        r = ((1<<15)*((uint32_t)rgba[0])) / a;
-        g = ((1<<15)*((uint32_t)rgba[1])) / a;
-        b = ((1<<15)*((uint32_t)rgba[2])) / a;
+        r = rgba[0] / a;
+        g = rgba[1] / a;
+        b = rgba[2] / a;
       }
 
       // Apply luminance
       set_rgb16_lum_from_rgb16(color_r, color_g, color_b, &r, &g, &b);
 
       // Re-premult
-      r = ((uint32_t) r) * a / (1<<15);
-      g = ((uint32_t) g) * a / (1<<15);
-      b = ((uint32_t) b) * a / (1<<15);
+      r = r * a;
+      g = g * a;
+      b = b * a;
 
       // And combine as normal.
-      uint32_t opa_a = mask[offset] * opacity / (1<<15); // topAlpha
-      uint32_t opa_b = (1<<15) - opa_a; // bottomAlpha
-      rgba[0] = (opa_a*r + opa_b*rgba[0])/(1<<15);
-      rgba[1] = (opa_a*g + opa_b*rgba[1])/(1<<15);
-      rgba[2] = (opa_a*b + opa_b*rgba[2])/(1<<15);
+      float opa_a = mask[offset] * opacity; // topAlpha
+      float opa_b = 1.0 - opa_a; // bottomAlpha
+      rgba[0] = (opa_a*r + opa_b*rgba[0]);
+      rgba[1] = (opa_a*g + opa_b*rgba[1]);
+      rgba[2] = (opa_a*b + opa_b*rgba[2]);
     }
   }
 }

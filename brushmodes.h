@@ -19,13 +19,13 @@ void draw_dab_pixels_BlendMode_Normal (float * mask,
                                        float color_b,
                                        float opacity);
 void
-draw_dab_pixels_BlendMode_Color (uint16_t * mask,
-                                 uint16_t * rgba_buffer, // b=bottom, premult
+draw_dab_pixels_BlendMode_Color (float * mask,
+                                 float * rgba_buffer, // b=bottom, premult
                                  DabBounds *b,
-                                 uint16_t color_r,  // }
-                                 uint16_t color_g,  // }-- a=top, !premult
-                                 uint16_t color_b,  // }
-                                 uint16_t opacity);
+                                 float color_r,  // }
+                                 float color_g,  // }-- a=top, !premult
+                                 float color_b,  // }
+                                 float opacity);
 void draw_dab_pixels_BlendMode_Normal_and_Eraser (float * mask,
                                                   float * rgba,
                                                   DabBounds *b,
