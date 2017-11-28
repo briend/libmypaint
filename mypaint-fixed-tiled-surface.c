@@ -123,7 +123,7 @@ mypaint_fixed_tiled_surface_new(int width, int height)
         fprintf(stderr, "CRITICAL: unable to allocate enough memory: %zu bytes", buffer_size);
         return NULL;
     }
-    memset(buffer, 4294967295, buffer_size);
+    memset(buffer, 255, buffer_size);
 
     self->tile_buffer = buffer;
     self->tile_size = tile_size;

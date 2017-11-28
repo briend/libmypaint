@@ -11,7 +11,7 @@
 
 // Naive conversion code from the internal MyPaint format and 8 bit RGB
 void
-fix15_to_rgba8(uint16_t *src, uint8_t *dst, int length)
+fix15_to_rgba8(float *src, uint8_t *dst, int length)
 {
     for (int i = 0; i < length; i++) {
       uint32_t r, g, b, a;
@@ -31,20 +31,20 @@ fix15_to_rgba8(uint16_t *src, uint8_t *dst, int length)
       }
 
       // Variant A) rounding
-      const uint32_t add_r = (1<<15)/2;
-      const uint32_t add_g = (1<<15)/2;
-      const uint32_t add_b = (1<<15)/2;
-      const uint32_t add_a = (1<<15)/2;
+/*      const uint32_t add_r = (1<<15)/2;*/
+/*      const uint32_t add_g = (1<<15)/2;*/
+/*      const uint32_t add_b = (1<<15)/2;*/
+/*      const uint32_t add_a = (1<<15)/2;*/
 
-      *dst++ = (r * 255 + add_r) / (1<<15);
-      *dst++ = (g * 255 + add_g) / (1<<15);
-      *dst++ = (b * 255 + add_b) / (1<<15);
-      *dst++ = (a * 255 + add_a) / (1<<15);
+      *dst++ = (r * 255 );
+      *dst++ = (g * 255 );
+      *dst++ = (b * 255 );
+      *dst++ = (a * 255 );
     }
 }
 
 // Utility code for writing out scanline-based formats like PPM
-typedef void (*LineChunkCallback) (uint16_t *chunk, int chunk_length, void *user_data);
+typedef void (*LineChunkCallback) (float *chunk, int chunk_length, void *user_data);
 
 /* Iterate over chunks of data in the MyPaintTiledSurface,
     starting top-left (0,0) and stopping at bottom-right (width-1,height-1)
@@ -75,7 +75,7 @@ iterate_over_line_chunks(MyPaintTiledSurface * tiled_surface, int height, int wi
                 const int y_offset = y*tile_size;
                 const int chunk_length = (tx+1 > tiles_per_row) ? tile_size : width % tile_size;
                 // FIXME: change to real datatype
-                callback((uint16_t *)requests[tx].buffer + y_offset, chunk_length, user_data);
+                callback((float *)requests[tx].buffer + y_offset, chunk_length, user_data);
             }
         }
 
@@ -94,7 +94,7 @@ typedef struct {
 } WritePPMUserData;
 
 static void
-write_ppm_chunk(uint16_t *chunk, int chunk_length, void *user_data)
+write_ppm_chunk(float *chunk, int chunk_length, void *user_data)
 {
     WritePPMUserData data = *(WritePPMUserData *)user_data;
 
