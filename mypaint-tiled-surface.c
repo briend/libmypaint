@@ -465,12 +465,12 @@ process_op(float *rgba_p, float *mask,
                                           op->lock_alpha*op->opaque);
     }
 
-    if (op->colorize) {
-      assert(0);
-      //draw_dab_pixels_BlendMode_Color(mask, rgba_p, &bb,
-      //                                op->color_r, op->color_g, op->color_b,
-      //                                op->colorize*op->opaque*(1<<15));
-    }
+/*    if (op->colorize) {*/
+/*      assert(0);*/
+/*      //draw_dab_pixels_BlendMode_Color(mask, rgba_p, &bb,*/
+/*      //                                op->color_r, op->color_g, op->color_b,*/
+/*      //                                op->colorize*op->opaque*(1<<15));*/
+/*    }*/
 }
 
 // Must be threadsafe
@@ -549,9 +549,9 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
     if (op->hardness == 0.0f) return FALSE; // infintly small center point, fully transparent outside
     if (op->opaque == 0.0f) return FALSE;
 
-    color_r = CLAMP(color_r, 0.0f, 1.0f);
-    color_g = CLAMP(color_g, 0.0f, 1.0f);
-    color_b = CLAMP(color_b, 0.0f, 1.0f);
+/*    color_r = CLAMP(color_r, 0.0f, 1.0f);*/
+/*    color_g = CLAMP(color_g, 0.0f, 1.0f);*/
+/*    color_b = CLAMP(color_b, 0.0f, 1.0f);*/
     color_a = CLAMP(color_a, 0.0f, 1.0f);
 
     op->color_r = color_r;
@@ -828,9 +828,9 @@ void get_color (MyPaintSurface *surface, float x, float y,
     }
 
     // fix rounding problems that do happen due to floating point math
-    *color_r = CLAMP(*color_r, 0.0f, 1.0f);
-    *color_g = CLAMP(*color_g, 0.0f, 1.0f);
-    *color_b = CLAMP(*color_b, 0.0f, 1.0f);
+/*    *color_r = CLAMP(*color_r, 0.0f, 1.0f);*/
+/*    *color_g = CLAMP(*color_g, 0.0f, 1.0f);*/
+/*    *color_b = CLAMP(*color_b, 0.0f, 1.0f);*/
     *color_a = CLAMP(*color_a, 0.0f, 1.0f);
 }
 

@@ -858,7 +858,7 @@ smallest_angular_difference(float angleA, float angleB)
     float eraser_target_alpha = 1.0;
     if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE] > 0.0) {
       // mix (in RGB) the smudge color with the brush color
-      hsv_to_rgb_float (&color_h, &color_s, &color_v);
+      //hsv_to_rgb_float (&color_h, &color_s, &color_v);
       float fac = self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE];
       if (fac > 1.0) fac = 1.0;
       // If the smudge color somewhat transparent, then the resulting
@@ -877,7 +877,7 @@ smallest_angular_difference(float angleA, float angleB)
         color_s = 0.0;
         color_v = 0.0;
       }
-      rgb_to_hsv_float (&color_h, &color_s, &color_v);
+      //rgb_to_hsv_float (&color_h, &color_s, &color_v);
     }
 
     // eraser
@@ -886,21 +886,23 @@ smallest_angular_difference(float angleA, float angleB)
     }
 
     // HSV color change
+    rgb_to_hsv_float (&color_h, &color_s, &color_v);
     color_h += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_H];
     color_s += color_s * color_v * self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSV_S];
     color_v += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_V];
-
+    hsv_to_rgb_float (&color_h, &color_s, &color_v);
+    
     // HSL color change
     if (self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_L] || self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSL_S]) {
       // (calculating way too much here, can be optimized if necessary)
       // this function will CLAMP the inputs
-      hsv_to_rgb_float (&color_h, &color_s, &color_v);
+      //hsv_to_rgb_float (&color_h, &color_s, &color_v);
       rgb_to_hsl_float (&color_h, &color_s, &color_v);
       color_v += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_L];
       color_s += color_s * MIN(fabsf(1.0 - color_v), fabsf(color_v)) * 2.0
         * self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSL_S];
       hsl_to_rgb_float (&color_h, &color_s, &color_v);
-      rgb_to_hsv_float (&color_h, &color_s, &color_v);
+      //rgb_to_hsv_float (&color_h, &color_s, &color_v);
     }
 
     float hardness = CLAMP(self->settings_value[MYPAINT_BRUSH_SETTING_HARDNESS], 0.0, 1.0);
@@ -951,7 +953,7 @@ smallest_angular_difference(float angleA, float angleB)
     }
 
     // the functions below will CLAMP most inputs
-    hsv_to_rgb_float (&color_h, &color_s, &color_v);
+    //hsv_to_rgb_float (&color_h, &color_s, &color_v);
     return mypaint_surface_draw_dab (surface, x, y, radius, color_h, color_s, color_v, opaque, hardness, eraser_target_alpha,
                               self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_RATIO], self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_ANGLE],
                               self->settings_value[MYPAINT_BRUSH_SETTING_LOCK_ALPHA],

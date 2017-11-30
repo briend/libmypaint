@@ -50,9 +50,9 @@ rgb_to_hsv_float (float *r_ /*h*/, float *g_ /*s*/, float *b_ /*v*/)
   g = *g_;
   b = *b_;
 
-  r = CLAMP(r, 0.0, 1.0);
-  g = CLAMP(g, 0.0, 1.0);
-  b = CLAMP(b, 0.0, 1.0);
+/*  r = CLAMP(r, 0.0, 1.0);*/
+/*  g = CLAMP(g, 0.0, 1.0);*/
+/*  b = CLAMP(b, 0.0, 1.0);*/
 
   max = MAX3(r, g, b);
   min = MIN3(r, g, b);
@@ -189,9 +189,9 @@ rgb_to_hsl_float (float *r_, float *g_, float *b_)
   g = *g_;
   b = *b_;
 
-  r = CLAMP(r, 0.0, 1.0);
-  g = CLAMP(g, 0.0, 1.0);
-  b = CLAMP(b, 0.0, 1.0);
+/*  r = CLAMP(r, 0.0, 1.0);*/
+/*  g = CLAMP(g, 0.0, 1.0);*/
+/*  b = CLAMP(b, 0.0, 1.0);*/
 
   max = MAX3(r, g, b);
   min = MIN3(r, g, b);
