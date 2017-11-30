@@ -465,12 +465,12 @@ process_op(float *rgba_p, float *mask,
                                           op->lock_alpha*op->opaque);
     }
 
-/*    if (op->colorize) {*/
-/*      assert(0);*/
-/*      //draw_dab_pixels_BlendMode_Color(mask, rgba_p, &bb,*/
-/*      //                                op->color_r, op->color_g, op->color_b,*/
-/*      //                                op->colorize*op->opaque*(1<<15));*/
-/*    }*/
+    if (op->colorize) {
+      //assert(0);
+      draw_dab_pixels_BlendMode_Color(mask, rgba_p, &bb,
+                                      op->color_r, op->color_g, op->color_b,
+                                      op->colorize*op->opaque);
+    }
 }
 
 // Must be threadsafe
