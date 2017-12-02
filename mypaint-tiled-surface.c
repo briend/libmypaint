@@ -814,24 +814,24 @@ void get_color (MyPaintSurface *surface, float x, float y,
     sum_b /= sum_weight;
 
     *color_a = sum_a;
-    // now un-premultiply the alpha
-    if (sum_a > 0.0f) {
-      *color_r = sum_r / sum_a;
-      *color_g = sum_g / sum_a;
-      *color_b = sum_b / sum_a;
-    } else {
-      // it is all transparent, so don't care about the colors
-      // (let's make them ugly so bugs will be visible)
-      *color_r = 0.0f;
-      *color_g = 1.0f;
-      *color_b = 0.0f;
-    }
+/*    // now un-premultiply the alpha*/
+/*    if (sum_a > 0.0f) {*/
+    *color_r = sum_r;
+    *color_g = sum_g;
+    *color_b = sum_b;
+/*    } else {*/
+/*      // it is all transparent, so don't care about the colors*/
+/*      */
+/*      *color_r = 0.0f;*/
+/*      *color_g = 0.0f;*/
+/*      *color_b = 0.0f;*/
+/*    }*/
 
     // fix rounding problems that do happen due to floating point math
 /*    *color_r = CLAMP(*color_r, 0.0f, 1.0f);*/
 /*    *color_g = CLAMP(*color_g, 0.0f, 1.0f);*/
 /*    *color_b = CLAMP(*color_b, 0.0f, 1.0f);*/
-    *color_a = CLAMP(*color_a, 0.0f, 1.0f);
+/*    *color_a = CLAMP(*color_a, 0.0f, 1.0f);*/
 }
 
 /**

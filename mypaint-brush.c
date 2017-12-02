@@ -841,13 +841,15 @@ smallest_angular_difference(float angleA, float angleB)
       }
 
       // updated the smudge color (stored with premultiplied alpha)
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_A ] = fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_A ] + (1-fac)*a;
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_A ] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] * fac + a * (1 - fac);
       // fix rounding errors
       self->states[MYPAINT_BRUSH_STATE_SMUDGE_A ] = CLAMP(self->states[MYPAINT_BRUSH_STATE_SMUDGE_A], 0.0, 1.0);
 
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] = fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] + (1-fac)*r*a;
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] = fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] + (1-fac)*g*a;
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] = fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] + (1-fac)*b*a;
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] * fac + r * (1 - fac);
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] * fac + g * (1 - fac);
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] * fac + b * (1 - fac);
+      
+/*      printf("smudge state is %f %f %f %f",self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] );*/
     }
 
     // color part
@@ -864,25 +866,29 @@ smallest_angular_difference(float angleA, float angleB)
       // If the smudge color somewhat transparent, then the resulting
       // dab will do erasing towards that transparency level.
       // see also ../doc/smudge_math.png
-      eraser_target_alpha = (1-fac)*1.0 + fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_A];
+      eraser_target_alpha =  self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] * fac + 1.0 * (1 - fac);
+      //eraser_target_alpha = self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] * fac + (1 - fac) * (1 - self->states[MYPAINT_BRUSH_STATE_SMUDGE_A]) * 1.0;
       // fix rounding errors (they really seem to happen in the previous line)
       eraser_target_alpha = CLAMP(eraser_target_alpha, 0.0, 1.0);
-      if (eraser_target_alpha > 0) {
-        color_h = (fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] + (1-fac)*color_h) / eraser_target_alpha;
-        color_s = (fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] + (1-fac)*color_s) / eraser_target_alpha;
-        color_v = (fac*self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] + (1-fac)*color_v) / eraser_target_alpha;
-      } else {
+/*      if (eraser_target_alpha > 0) {*/
+      color_h = self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] * fac + color_h * (1 - fac);
+      color_s = self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] * fac + color_s * (1 - fac);
+      color_v = self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] * fac + color_v * (1 - fac);
+/*      } else {*/
         // we are only erasing; the color does not matter
-        color_h = 1.0;
-        color_s = 0.0;
-        color_v = 0.0;
-      }
+/*        color_h = 0.0;*/
+/*        color_s = 0.0;*/
+/*        color_v = 0.0;*/
+/*      }*/
       //rgb_to_hsv_float (&color_h, &color_s, &color_v);
     }
 
     // eraser
     if (self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]) {
       eraser_target_alpha *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
+      color_h *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
+      color_s *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
+      color_v *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
     }
 
     // HSV color change

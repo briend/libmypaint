@@ -59,9 +59,9 @@ void draw_dab_pixels_BlendMode_Normal (float *mask,
           float opa_a = mask[offset]*opacity; // topAlpha
           float opa_b = 1.0-opa_a; // bottomAlpha
           rgba[3] = opa_a + opa_b * rgba[3];
-          rgba[0] = (opa_a*color_r + opa_b*rgba[0]);
-          rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
-          rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
+          rgba[0] = opa_a * color_r + opa_b*rgba[0];
+          rgba[1] = opa_a * color_g + opa_b*rgba[1];
+          rgba[2] = opa_a * color_b + opa_b*rgba[2];
       }
     }
 }
@@ -161,35 +161,35 @@ draw_dab_pixels_BlendMode_Color (float * mask,
                                  float opacity)
 {
 
-    for (int yp = b->y0; yp <= b->y1; yp++) {
-      for (int xp = b->x0; xp <= b->x1; xp++) {
-        const int offset = (yp*TILE_SIZE)+xp;
-        float *rgba = rgba_buffer + (offset*4);
+  for (int yp = b->y0; yp <= b->y1; yp++) {
+    for (int xp = b->x0; xp <= b->x1; xp++) {
+      const int offset = (yp*TILE_SIZE)+xp;
+      float *rgba = rgba_buffer + (offset*4);
 
-      // De-premult
-      float r, g, b;
-      const float a = rgba[3];
-      r = g = b = 0;
-      if (rgba[3] != 0) {
-        r = rgba[0] / a;
-        g = rgba[1] / a;
-        b = rgba[2] / a;
-      }
+    // De-premult
+    float r, g, b;
+    const float a = rgba[3];
+    r = g = b = 0;
+    if (rgba[3] != 0) {
+      r = rgba[0] / a;
+      g = rgba[1] / a;
+      b = rgba[2] / a;
+    }
 
-      // Apply luminance
-      set_rgb16_lum_from_rgb16(color_r, color_g, color_b, &r, &g, &b);
+    // Apply luminance
+    set_rgb16_lum_from_rgb16(color_r, color_g, color_b, &r, &g, &b);
 
-      // Re-premult
-      r = r * a;
-      g = g * a;
-      b = b * a;
+    // Re-premult
+    r = r * a;
+    g = g * a;
+    b = b * a;
 
-      // And combine as normal.
-      float opa_a = mask[offset] * opacity; // topAlpha
-      float opa_b = 1.0 - opa_a; // bottomAlpha
-      rgba[0] = (opa_a*r + opa_b*rgba[0]);
-      rgba[1] = (opa_a*g + opa_b*rgba[1]);
-      rgba[2] = (opa_a*b + opa_b*rgba[2]);
+    // And combine as normal.
+    float opa_a = mask[offset] * opacity; // topAlpha
+    float opa_b = 1.0 - opa_a; // bottomAlpha
+    rgba[0] = (opa_a*r + opa_b*rgba[0]);
+    rgba[1] = (opa_a*g + opa_b*rgba[1]);
+    rgba[2] = (opa_a*b + opa_b*rgba[2]);
     }
   }
 }
@@ -210,10 +210,10 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser (float *mask,
                                                   float color_a,
                                                   float opacity) {
 
-    for (int yp = b->y0; yp <= b->y1; yp++) {
-      for (int xp = b->x0; xp <= b->x1; xp++) {
-          const int offset = (yp*TILE_SIZE)+xp;
-          float *rgba = rgba_buffer + (offset*4);
+  for (int yp = b->y0; yp <= b->y1; yp++) {
+    for (int xp = b->x0; xp <= b->x1; xp++) {
+        const int offset = (yp*TILE_SIZE)+xp;
+        float *rgba = rgba_buffer + (offset*4);
 
       float opa_a = mask[offset]*opacity; // topAlpha
       float opa_b = 1.0-opa_a; // bottomAlpha
@@ -237,19 +237,19 @@ void draw_dab_pixels_BlendMode_LockAlpha (float * mask,
                                           float color_b,
                                           float opacity) {
 
-    for (int yp = b->y0; yp <= b->y1; yp++) {
-      for (int xp = b->x0; xp <= b->x1; xp++) {
-          const int offset = (yp*TILE_SIZE)+xp;
-          float *rgba = rgba_buffer + (offset*4);
+  for (int yp = b->y0; yp <= b->y1; yp++) {
+    for (int xp = b->x0; xp <= b->x1; xp++) {
+        const int offset = (yp*TILE_SIZE)+xp;
+        float *rgba = rgba_buffer + (offset*4);
 
-      float opa_a = mask[offset]*opacity; // topAlpha
-      float opa_b = 1.0-opa_a; // bottomAlpha
-      
-      opa_a *= rgba[3];
-          
-      rgba[0] = (opa_a*color_r + opa_b*rgba[0]);
-      rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
-      rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
+        float opa_a = mask[offset]*opacity; // topAlpha
+        float opa_b = 1.0-opa_a; // bottomAlpha
+        
+        opa_a *= rgba[3];
+            
+        rgba[0] = (opa_a*color_r + opa_b*rgba[0]);
+        rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
+        rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
     }
   }
 }
