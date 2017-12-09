@@ -828,6 +828,8 @@ smallest_angular_difference(float angleA, float angleB)
         float smudge_radius = radius * expf(self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_RADIUS_LOG]);
         smudge_radius = CLAMP(smudge_radius, ACTUAL_RADIUS_MIN, ACTUAL_RADIUS_MAX);
         mypaint_surface_get_color(surface, px, py, smudge_radius, &r, &g, &b, &a);
+        
+        //printf("mypaint-brush 815 get_color received %f, %f, %f, %f\n", r, g, b, a);
 
         self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_R] = r;
         self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_G] = g;
@@ -839,15 +841,17 @@ smallest_angular_difference(float angleA, float angleB)
         b = self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_B];
         a = self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_A];
       }
-
+      //printf("mypaint-brush 827 smudge state currently %f, %f, %f, %f\n", self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] );
       // updated the smudge color (stored with premultiplied alpha)
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_A ] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] * fac + a * (1 - fac);
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_A ] = (a * fac + (1 - fac) * self->states[MYPAINT_BRUSH_STATE_SMUDGE_A]);
       // fix rounding errors
       self->states[MYPAINT_BRUSH_STATE_SMUDGE_A ] = CLAMP(self->states[MYPAINT_BRUSH_STATE_SMUDGE_A], 0.0, 1.0);
 
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] * fac + r * (1 - fac);
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] * fac + g * (1 - fac);
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] = self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] * fac + b * (1 - fac);
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] = (r * fac + (1 - fac) * self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA]);
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] = (g * fac + (1 - fac) * self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA]);
+      self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] = (b * fac + (1 - fac) * self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA]);
+      
+      //printf("mypaint-brush 837 mixed get with smudge, result %f, %f, %f, %f\n", self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] , self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] , self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] , self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] );
       
 /*      printf("smudge state is %f %f %f %f",self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA], self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] );*/
     }
@@ -857,6 +861,7 @@ smallest_angular_difference(float angleA, float angleB)
     float color_h = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_H]);
     float color_s = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_S]);
     float color_v = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_V]);
+    //printf("mypaint-brush 847 brush color starts out as %f, %f, %f\n", color_h, color_s, color_v);
     float eraser_target_alpha = 1.0;
     if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE] > 0.0) {
       // mix (in RGB) the smudge color with the brush color
@@ -866,14 +871,16 @@ smallest_angular_difference(float angleA, float angleB)
       // If the smudge color somewhat transparent, then the resulting
       // dab will do erasing towards that transparency level.
       // see also ../doc/smudge_math.png
-      eraser_target_alpha =  self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] * fac + 1.0 * (1 - fac);
+      eraser_target_alpha =  (self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] * fac + 1.0 * (1 - fac));
       //eraser_target_alpha = self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] * fac + (1 - fac) * (1 - self->states[MYPAINT_BRUSH_STATE_SMUDGE_A]) * 1.0;
       // fix rounding errors (they really seem to happen in the previous line)
       eraser_target_alpha = CLAMP(eraser_target_alpha, 0.0, 1.0);
 /*      if (eraser_target_alpha > 0) {*/
-      color_h = self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] * fac + color_h * (1 - fac);
-      color_s = self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] * fac + color_s * (1 - fac);
-      color_v = self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] * fac + color_v * (1 - fac);
+      color_h = (self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] * fac + color_h * (1 - fac));
+      color_s = (self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] * fac + color_s * (1 - fac));
+      color_v = (self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] * fac + color_v * (1 - fac));
+      
+      //printf("mypaitn-brush 866 smudge and brush mixed, result %f, %f, %f, %f\n", color_h, color_s, color_v, eraser_target_alpha);
 /*      } else {*/
         // we are only erasing; the color does not matter
 /*        color_h = 0.0;*/
@@ -891,12 +898,14 @@ smallest_angular_difference(float angleA, float angleB)
       color_v *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
     }
 
-    // HSV color change
-    rgb_to_hsv_float (&color_h, &color_s, &color_v);
-    color_h += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_H];
-    color_s += color_s * color_v * self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSV_S];
-    color_v += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_V];
-    hsv_to_rgb_float (&color_h, &color_s, &color_v);
+    if (self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_H] || self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSV_S] || self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_V]) {
+      // HSV color change
+      rgb_to_hsv_float (&color_h, &color_s, &color_v);
+      color_h += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_H];
+      color_s += color_s * color_v * self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSV_S];
+      color_v += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_V];
+      hsv_to_rgb_float (&color_h, &color_s, &color_v);
+    }
     
     // HSL color change
     if (self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_L] || self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSL_S]) {
@@ -957,7 +966,7 @@ smallest_angular_difference(float angleA, float angleB)
 
       radius = radius + (snapped_radius - radius) * snapToPixel;
     }
-
+    //printf("mypaint-brush 952 about to dab color is %f, %f, %f, %f, %f\n", color_h, color_s, color_v, opaque, eraser_target_alpha);
     // the functions below will CLAMP most inputs
     //hsv_to_rgb_float (&color_h, &color_s, &color_v);
     return mypaint_surface_draw_dab (surface, x, y, radius, color_h, color_s, color_v, opaque, hardness, eraser_target_alpha,

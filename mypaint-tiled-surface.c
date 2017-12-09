@@ -558,6 +558,8 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
     op->color_g = color_g;
     op->color_b = color_b;
     op->color_a = color_a;
+    
+    //printf("mp-tiled-surf 566 color is %f, %f, %f, %f \n", color_r, color_g, color_b, color_a);
 
     // blending mode preparation
     op->normal = 1.0f;
@@ -748,10 +750,10 @@ void get_color (MyPaintSurface *surface, float x, float y,
     float sum_weight, sum_r, sum_g, sum_b, sum_a;
     sum_weight = sum_r = sum_g = sum_b = sum_a = 0.0f;
 
-    // in case we return with an error
-    *color_r = 0.0f;
-    *color_g = 1.0f;
-    *color_b = 0.0f;
+/*    // in case we return with an error*/
+/*    *color_r = 0.0f;*/
+/*    *color_g = 1.0f;*/
+/*    *color_b = 0.0f;*/
 
     // WARNING: some code duplication with draw_dab
 
@@ -814,12 +816,12 @@ void get_color (MyPaintSurface *surface, float x, float y,
     sum_b /= sum_weight;
 
     *color_a = sum_a;
-/*    // now un-premultiply the alpha*/
-/*    if (sum_a > 0.0f) {*/
-    *color_r = sum_r;
-    *color_g = sum_g;
-    *color_b = sum_b;
-/*    } else {*/
+
+//    if (sum_a > 0.0f) {
+      *color_r = sum_r;
+      *color_g = sum_g;
+      *color_b = sum_b;
+//    } 
 /*      // it is all transparent, so don't care about the colors*/
 /*      */
 /*      *color_r = 0.0f;*/
@@ -831,7 +833,7 @@ void get_color (MyPaintSurface *surface, float x, float y,
 /*    *color_r = CLAMP(*color_r, 0.0f, 1.0f);*/
 /*    *color_g = CLAMP(*color_g, 0.0f, 1.0f);*/
 /*    *color_b = CLAMP(*color_b, 0.0f, 1.0f);*/
-/*    *color_a = CLAMP(*color_a, 0.0f, 1.0f);*/
+//    *color_a = CLAMP(*color_a, 0.0f, 1.0f);
 }
 
 /**

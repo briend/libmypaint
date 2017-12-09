@@ -210,6 +210,7 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser (float *mask,
                                                   float color_a,
                                                   float opacity) {
 
+  //printf("brusmodes 227 colors are %f, %f, %f, %f, %f\n", color_r, color_g, color_b, opacity, color_a);
   for (int yp = b->y0; yp <= b->y1; yp++) {
     for (int xp = b->x0; xp <= b->x1; xp++) {
         const int offset = (yp*TILE_SIZE)+xp;
@@ -222,6 +223,7 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser (float *mask,
       rgba[0] = (opa_a*color_r + opa_b*rgba[0]);
       rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
       rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
+
 
     }
   }
