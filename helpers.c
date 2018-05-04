@@ -21,6 +21,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <math.h>
 
 #include "helpers.h"
@@ -606,11 +607,11 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
 
   //combine normal and subtractive RGB modes
   //combine in linear RGB if gamma was specified
-  int i = 0;
-  for (i=0; i < 3; i++) {  
-    result[i] = CLAMP((((1-normsub)*rgbmixnorm[i]) + (normsub*rgbmixsub[i])), 0.0f, 1.0f);
+
+  for (int i=0; i < 3; i++) {  
+    result[i] = ((1-normsub)*rgbmixnorm[i]) + (normsub*rgbmixsub[i]);
   }
-  //Now handle TRC if necessary
+  //Now handle transform if necessary
   if (gamma != 1.0) {
     ar = result[0];
     ag = result[1];
@@ -624,7 +625,14 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
     result[2] = ab;
   }
   //alpha is simple
-  result[3] = CLAMP(fac * aa + (1-fac) * ba, 0.0, 1.0); 
+  result[0] = CLAMP(result[0], 0.0f, 1.0f);
+  result[1] = CLAMP(result[1], 0.0f, 1.0f);
+  result[2] = CLAMP(result[2], 0.0f, 1.0f);
+  result[3] = CLAMP(fac * aa + (1-fac) * ba, 0.0f, 1.0f); 
+  
+  for (int i=0; i < 3; i++) {  
+    if (isnan(result[i])) { result[i] = 0.0; }
+  }
   
   //Chroma and Luminosity tweak
   //compare result to the smudge_state (a) and tweak the chroma and luma
@@ -638,12 +646,12 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
     float result_c = result[1];
     float result_y = result[2];
     
-    //use linear RGB for accurate luminosity
-    srgb_to_rgb_float (&smudge_h, &smudge_c, &smudge_y, 2.4);
-    srgb_to_rgb_float (&result_h, &result_c, &result_y, 2.4);
+    //use specified gamma in case user wanted EOTF/linear
+    srgb_to_rgb_float (&smudge_h, &smudge_c, &smudge_y, gamma);
+    srgb_to_rgb_float (&result_h, &result_c, &result_y, gamma);
     rgb_to_hcy_float (&smudge_h, &smudge_c, &smudge_y);
     rgb_to_hcy_float (&result_h, &result_c, &result_y);
-    
+
     //set our Brightness of the mix according to mode result. and also process saturation
     //Don't process achromatic colors (HCY has 3 achromatic states C=0 or Y=1 or Y=0)
     if (result_c != 0 && smudge_c != 0 && result_y != 0 && smudge_y != 0 && result_y != 1 && smudge_y != 1) {  
@@ -664,18 +672,18 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
       huediff_bright = anglediff * smudge_darken * hueratio;
 
       //do the desaturation.  More strongly saturated colors will reduce S more than less saturated colors
-      result_c = result_c*(1-huediff_sat);
+      result_c = CLAMP(result_c*(1-huediff_sat), 0.0f, 1.0f);
 
       //attempt to simulate subtractive mode by darkening colors if they are different hues
-      result_y = result_y*(1-huediff_bright);
+      result_y = CLAMP(result_y*(1-huediff_bright), 0.0f, 1.0f);
 
       //convert back to companded sRGB
       hcy_to_rgb_float (&result_h, &result_c, &result_y);
-      rgb_to_srgb_float (&result_h, &result_c, &result_y, 2.4);
-      
-      result[0] = result_h;
-      result[1] = result_c;
-      result[2] = result_y;
+      rgb_to_srgb_float (&result_h, &result_c, &result_y, gamma);
+
+      result[0] = CLAMP(result_h, 0.0f, 1.0f);
+      result[1] = CLAMP(result_c, 0.0f, 1.0f);
+      result[2] = CLAMP(result_y, 0.0f, 1.0f);
     }
   }
   return result; 
