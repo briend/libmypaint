@@ -536,8 +536,8 @@
             "displayed_name": "Smudge Transparency", 
             "internal_name": "smudge_transparency", 
             "maximum": 1.0, 
-            "minimum": 0.0, 
-            "tooltip": "Control how much transparency is picked up and smudged, similar to lock alpha.  1.0 will not move any transparency.\n0.5 will move only 50% transparency and above. 0.0 will have no effect."
+            "minimum": -1.0, 
+            "tooltip": "Control how much transparency is picked up and smudged, similar to lock alpha.  1.0 will not move any transparency.\n0.5 will move only 50% transparency and above. 0.0 will have no effect.  Negative values do the reverse"
         },
         {
             "constant": false, 

@@ -796,7 +796,9 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
         
         //don't draw unless the picked-up alpha is above a certain level
         //this is sort of like lock_alpha but for smudge
-        if (a < self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] ) {
+        //negative values reverse this idea
+        if ((self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] > 0.0 && a < self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY]) ||
+           (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] < 0.0 && a > self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] * -1)) {
           return FALSE;
         }
 
