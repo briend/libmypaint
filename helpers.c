@@ -25,6 +25,20 @@
 
 #include "helpers.h"
 
+float T_MATRIX[3][36] = {{5.47813E-05, 0.000184722, 0.000935514, 0.003096265, 0.009507714, 0.017351596, 0.022073595, 0.016353161, 0.002002407, -0.016177731, -0.033929391, -0.046158952, -0.06381706, -0.083911194, -0.091832385, -0.08258148, -0.052950086, -0.012727224, 0.037413037, 0.091701812, 0.147964686, 0.181542886, 0.210684154, 0.210058081, 0.181312094, 0.132064724, 0.093723787, 0.057159281, 0.033469657, 0.018235464, 0.009298756, 0.004023687, 0.002068643, 0.00109484, 0.000454231, 0.000255925},
+{-4.65552E-05, -0.000157894, -0.000806935, -0.002707449, -0.008477628, -0.016058258, -0.02200529, -0.020027434, -0.011137726, 0.003784809, 0.022138944, 0.038965605, 0.063361718, 0.095981626, 0.126280277, 0.148575844, 0.149044804, 0.14239936, 0.122084916, 0.09544734, 0.067421931, 0.035691251, 0.01313278, -0.002384996, -0.009409573, -0.009888983, -0.008379513, -0.005606153, -0.003444663, -0.001921041, -0.000995333, -0.000435322, -0.000224537, -0.000118838, -4.93038E-05, -2.77789E-05},
+{0.00032594, 0.001107914, 0.005677477, 0.01918448, 0.060978641, 0.121348231, 0.184875618, 0.208804428, 0.197318551, 0.147233899, 0.091819086, 0.046485543, 0.022982618, 0.00665036, -0.005816014, -0.012450334, -0.015524259, -0.016712927, -0.01570093, -0.013647887, -0.011317812, -0.008077223, -0.005863171, -0.003943485, -0.002490472, -0.001440876, -0.000852895, -0.000458929, -0.000248389, -0.000129773, -6.41985E-05, -2.71982E-05, -1.38913E-05, -7.35203E-06, -3.05024E-06, -1.71858E-06}};
+
+float spectral_r[36] = {0.015603944435243, 0.015604290522261, 0.015605813688466, 0.015613374952138, 0.015641410348937, 0.015735182555386, 0.015963980154163, 
+0.016413479597224, 0.017147856366573, 0.018216350851111, 0.019637333312242, 0.021433552239869, 0.023647340971203, 0.026423918541353, 
+0.030050684039964, 0.035005703130505, 0.042098118739387, 0.052576115305368, 0.068652704521994, 0.094181329816583, 0.136134223719597, 
+0.207308449035284, 0.328494607128972, 0.53005148318892, 0.838859915780766, 1.2465990882888, 1.69219313198829, 2.07675584506431, 
+2.34910243251493, 2.51178891096814, 2.5974303446936, 2.63841433161008, 2.65888276907875, 2.6684963749706, 2.67229195424748, 2.67366156899577};
+
+float spectral_g[36] = {0.047202088273281, 0.047206744553887, 0.047227230602721, 0.047328962072349, 0.04770743771169, 0.048991913602353, 0.052254925548439, 0.059258144233783, 0.072636771112054, 0.097300965154598, 0.142095959226619, 0.223445766596059, 0.369366506805273, 0.62287213146272, 1.00261672243663, 1.37101919554934, 1.44307825143871, 1.19020268861967, 0.850138320141449, 0.584247440487092, 0.411540207129038, 0.306351610576843, 0.242502999890411, 0.204181641595136, 0.181492529488003, 0.168348152754132, 0.160779551959378, 0.156644743701248, 0.154444959899402, 0.15332979076887, 0.152792337005596, 0.152546319127935, 0.152425840477336, 0.152369746608457, 0.152347684936107, 0.152339735430577};
+
+float spectral_b[36] = {0.947081874376452, 0.947194900200616, 0.94767489139251, 0.949902270339965, 0.957380374473825, 0.978762576435505, 1.01726078899001, 1.05054089905291, 1.00787084940803, 0.821916356380445, 0.562943946673851, 0.345346773846951, 0.203906711045521, 0.120729683657514, 0.073588462825919, 0.047005376726015, 0.031749191014897, 0.022638662855379, 0.016998737102774, 0.013383881843011, 0.011007384216009, 0.009432817302141, 0.008375027656616, 0.0076802952958, 0.007239450229151, 0.006971693886012, 0.00681297038356, 0.006724786463696, 0.006677438813494, 0.006653323539191, 0.006641680210393, 0.006636347219181, 0.006633734150006, 0.006632517032454, 0.006632038255597, 0.006631865725982};
+
 float rand_gauss (RngDouble * rng)
 {
   double sum = 0.0;
@@ -515,10 +529,14 @@ rgb_to_srgb_float (float *r_, float *g_, float *b_, float gamma) {
 //a is the current smudge state, b is the get_color (get=1) or the brush color (get=0)
 //mixing smudge_state+get_color is slightly different than mixing brush_color with smudge_color
 //so I've used the bool'get' parameter to differentiate them.
-float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gboolean get, float smudge_darken, float smudge_desat)
+float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gboolean get, float smudge_darken, float smudge_desat, float spectral)
 {
   float rgbmixnorm[4] = {0};
   float rgbmixsub[4] = {0};
+  float spectralmixnorm[4] = {0};
+  float spectralmixsub[4] = {0};
+  float normmix[4] = {0};
+  float submix[4] = {0};
   static float result[4] = {0};
   //normsub is the ratio of normal to subtractive
   normsub = CLAMP(normsub, 0.0f, 1.0f);
@@ -555,12 +573,84 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
       bba *=ba;
     }
 
-    rgbmixnorm[0] = fac * ar + (1-fac) * bra;
-    rgbmixnorm[1] = fac * ag + (1-fac) * bga;
-    rgbmixnorm[2] = fac * ab + (1-fac) * bba;
+    //RGB normal mixing
+    if (spectral < 1.0) {
+
+      rgbmixnorm[0] = fac * ar + (1-fac) * bra;
+      rgbmixnorm[1] = fac * ag + (1-fac) * bga;
+      rgbmixnorm[2] = fac * ab + (1-fac) * bba;
+    }
+    
+    //do eraser_target alpha for smudge+brush color
+    if (get == FALSE) {
+      rgbmixnorm[0] /=ba;
+      rgbmixnorm[1] /=ba;
+      rgbmixnorm[2] /=ba;
+    }    
+    
+    //spectral normal mixing
+    if (spectral > 0.0) {
+      
+      //expand rgb to spectral primaries
+      float spec_ar[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_ar[i] = spectral_r[i] * ar;
+      }
+      float spec_ag[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_ag[i] = spectral_g[i] * ag;
+      }
+      float spec_ab[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_ab[i] = spectral_b[i] * ab;
+      }
+      
+      float spec_br[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_br[i] = spectral_r[i] * br;
+      }
+      float spec_bg[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_bg[i] = spectral_g[i] * bg;
+      }
+      float spec_bb[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_bb[i] = spectral_b[i] * bb;
+      }
+      
+      //blend spectral primaries normal mode
+      float spectralmix[3][36] = {0};
+      for (int i=0; i < 36; i++) {
+        spectralmix[0][i] = fac * spec_ar[i] + (1-fac) * spec_br[i];
+        spectralmix[1][i] = fac * spec_ag[i] + (1-fac) * spec_bg[i];
+        spectralmix[2][i] = fac * spec_ab[i] + (1-fac) * spec_bb[i];
+      }
+      //collapse into one SPD
+      float spectral_combined[36] = {0};
+      for (int i=0; i<36; i++) {
+        spectral_combined[i] += spectralmix[0][i];
+        spectral_combined[i] += spectralmix[1][i];
+        spectral_combined[i] += spectralmix[2][i];
+      }
+      //convert to RGB
+      for (int i=0; i<36; i++) {
+        spectralmixnorm[0] += T_MATRIX[0][i] * spectral_combined[i];
+        spectralmixnorm[1] += T_MATRIX[1][i] * spectral_combined[i];
+        spectralmixnorm[2] += T_MATRIX[2][i] * spectral_combined[i];
+      }
+      spectralmixnorm[0] = CLAMP(spectralmixnorm[0], 0.0f, 1.0f);
+      spectralmixnorm[1] = CLAMP(spectralmixnorm[1], 0.0f, 1.0f);
+      spectralmixnorm[2] = CLAMP(spectralmixnorm[2], 0.0f, 1.0f);
+    }
+    
+    //mix rgb and spectral normal modes:
+    for (int i=0; i < 3; i++) {  
+      normmix[i] = (((1-spectral)*rgbmixnorm[i]) + (spectral*spectralmixnorm[i]));
+    }
+
   }
 
-  //subtractive
+  //subtractive blend modes (spectral and rgb)
   if (normsub > 0.0) {
     float alpha_b;  //either brush_a or get_color_a
     if (get == FALSE) {
@@ -589,26 +679,81 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
     if (paint_ratio_sum > 0.0) {
       subfac = paint_a_ratio/(paint_ratio_sum);
     }
+    
+    if (spectral < 1.0) {
       //mix with Weighted Geometric Mean
       //don't allow absolute zero because it has infinite
       //darkening power
       rgbmixsub[0] = powf(MAX(ar, 0.0001), subfac) * powf(MAX(br, 0.0001),(1-subfac));
       rgbmixsub[1] = powf(MAX(ag, 0.0001), subfac) * powf(MAX(bg, 0.0001),(1-subfac));
       rgbmixsub[2] = powf(MAX(ab, 0.0001), subfac) * powf(MAX(bb, 0.0001),(1-subfac));
+    }
+    
+    if (spectral > 0.0) {
+      //expand rgb to spectral primaries
+      float spec_ar[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_ar[i] = spectral_r[i] * ar;
+      }
+      float spec_ag[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_ag[i] = spectral_g[i] * ag;
+      }
+      float spec_ab[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_ab[i] = spectral_b[i] * ab;
+      }
+      
+      float spec_br[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_br[i] = spectral_r[i] * br;
+      }
+      float spec_bg[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_bg[i] = spectral_g[i] * bg;
+      }
+      float spec_bb[36] = {0};
+      for (int i=0; i < 36; i++) {
+        spec_bb[i] = spectral_b[i] * bb;
+      }
+      
+      //blend spectral primaries subtractive WGM
+      float spectralmix[3][36] = {0};
+      for (int i=0; i < 36; i++) {
+        spectralmix[0][i] = powf(MAX(spec_ar[i], 0.0001), subfac) * powf(MAX(spec_br[i], 0.0001), (1-subfac));
+        spectralmix[1][i] = powf(MAX(spec_ag[i], 0.0001), subfac) * powf(MAX(spec_bg[i], 0.0001), (1-subfac));
+        spectralmix[2][i] = powf(MAX(spec_ab[i], 0.0001), subfac) * powf(MAX(spec_bb[i], 0.0001), (1-subfac));
+      }
+      //collapse into one SPD
+      float spectral_combined[36] = {0};
+      for (int i=0; i<36; i++) {
+        spectral_combined[i] += spectralmix[0][i];
+        spectral_combined[i] += spectralmix[1][i];
+        spectral_combined[i] += spectralmix[2][i];
+      }
+      //convert to RGB
+      for (int i=0; i<36; i++) {
+        spectralmixsub[0] += T_MATRIX[0][i] * spectral_combined[i];
+        spectralmixsub[1] += T_MATRIX[1][i] * spectral_combined[i];
+        spectralmixsub[2] += T_MATRIX[2][i] * spectral_combined[i];
+      }
+      spectralmixsub[0] = CLAMP(spectralmixsub[0], 0.0f, 1.0f);
+      spectralmixsub[1] = CLAMP(spectralmixsub[1], 0.0f, 1.0f);
+      spectralmixsub[2] = CLAMP(spectralmixsub[2], 0.0f, 1.0f);
+    }
+    //mix rgb and spectral sub modes:
+    for (int i=0; i < 3; i++) {  
+      submix[i] = (((1-spectral)*rgbmixsub[i]) + (spectral*spectralmixsub[i]));
+    }
   }
 
-  //do eraser_target alpha for smudge+brush color
-  if (get == FALSE) {
-    rgbmixnorm[0] /=ba;
-    rgbmixnorm[1] /=ba;
-    rgbmixnorm[2] /=ba;
-  }    
+
 
   //combine normal and subtractive RGB modes
   //combine in linear RGB if gamma was specified
 
   for (int i=0; i < 3; i++) {  
-    result[i] = ((1-normsub)*rgbmixnorm[i]) + (normsub*rgbmixsub[i]);
+    result[i] = ((1-normsub)*normmix[i]) + (normsub*submix[i]);
   }
   //Now handle transform if necessary
   if (gamma != 1.0) {

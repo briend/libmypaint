@@ -529,7 +529,16 @@
             "maximum": 1.0, 
             "minimum": 0.0, 
             "tooltip": "Change the smudge mixing model from Normal mode to Subtractive.  0.0 is Normal and 1.0 is Subtractive(Weighted Geometric Mean method).\nIn-between will cross-fade the results."
-        },  
+        },
+        {
+            "constant": false, 
+            "default": 0.0, 
+            "displayed_name": "Smudge Spectral", 
+            "internal_name": "smudge_spectral", 
+            "maximum": 1.0, 
+            "minimum": 0.0, 
+            "tooltip": "Spectral Mixing mode.  0 is normal RGB, 1 is 36 segment spectral mode (Scott Burns)"
+        },
         {
             "constant": false, 
             "default": 0.0, 
