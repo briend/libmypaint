@@ -41,6 +41,6 @@ srgb_to_rgb_float (float *r_, float *g_, float *b_, float gamma);
 void
 rgb_to_srgb_float (float *r_, float *g_, float *b_, float gamma);
 
-float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gboolean get, float smudge_darken, float smudge_desat);
+float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gboolean get, float smudge_darken, float smudge_desat, float spectral);
 
 #endif // HELPERS_H

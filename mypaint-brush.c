@@ -840,7 +840,8 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
         self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_NORMAL_SUB],
         TRUE,
         self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_DARKEN],
-        self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_DESATURATION]
+        self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_DESATURATION],
+        self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL]
       );
 
       smudge_buckets[bucket][0] = smudge_new[0];
@@ -900,7 +901,8 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
             self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_NORMAL_SUB],
             FALSE,
             self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_DARKEN],
-            self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_DESATURATION]
+            self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_DESATURATION],
+            self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL]
           );  
           
           color_h = color_new[0];
