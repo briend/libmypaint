@@ -782,6 +782,8 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
       // expected to hurt quality too much. We call it at most every
       // second dab.
       float r, g, b, a;
+      float surface_color_spectral[36] = {0};
+      float rgb_spectral[3] = {0};
       smudge_buckets[bucket][8] *= fac;
       if (smudge_buckets[bucket][8] < (powf(0.5*fac, self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_LENGTH_LOG])) + 0.0000000000000001) {
         if (smudge_buckets[bucket][8] == 0.0) {
@@ -792,8 +794,23 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
 
         float smudge_radius = radius * expf(self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_RADIUS_LOG]);
         smudge_radius = CLAMP(smudge_radius, ACTUAL_RADIUS_MIN, ACTUAL_RADIUS_MAX);
-        mypaint_surface_get_color(surface, px, py, smudge_radius, &r, &g, &b, &a);
         
+        //get RGB and spectral surface colors, then blend them into one RGB smudge color
+        
+        if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL] > 0.0) {
+          mypaint_surface_get_spectral_color(surface, px, py, smudge_radius, surface_color_spectral, &a);
+          spectral_to_rgb(surface_color_spectral, rgb_spectral);
+        }
+        
+        if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL] < 1.0) {
+          mypaint_surface_get_color(surface, px, py, smudge_radius, &r, &g, &b, &a);
+        }
+        
+        //blend both methods of getting color
+        r = (1 - self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL]) * r + self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL] * rgb_spectral[0];
+        g = (1 - self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL]) * g + self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL] * rgb_spectral[1];
+        b = (1 - self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL]) * b + self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL] * rgb_spectral[2];
+
         //don't draw unless the picked-up alpha is above a certain level
         //this is sort of like lock_alpha but for smudge
         //negative values reverse this idea

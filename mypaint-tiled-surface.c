@@ -834,6 +834,101 @@ void get_color (MyPaintSurface *surface, float x, float y,
     *color_a = CLAMP(*color_a, 0.0f, 1.0f);
 }
 
+void get_spectral_color (MyPaintSurface *surface, float x, float y,
+                  float radius,
+                  float *spectral, float * color_a
+                  )
+{
+    MyPaintTiledSurface *self = (MyPaintTiledSurface *)surface;
+
+    if (radius < 1.0f) radius = 1.0f;
+    const float hardness = 0.5f;
+    const float aspect_ratio = 1.0f;
+    const float angle = 0.0f;
+
+    float sum_weight, sum_a;
+    float sum_spectral[36] = {0};
+    sum_weight = sum_a = 0.0f;
+    
+/*    for (int i=0; i<36; i++) {*/
+/*        spectral[i] = 1.0f;*/
+/*    }*/
+    // WARNING: some code duplication with draw_dab
+
+    float r_fringe = radius + 1.0f; // +1 should not be required, only to be sure
+
+    int tx1 = floor(floor(x - r_fringe) / MYPAINT_TILE_SIZE);
+    int tx2 = floor(floor(x + r_fringe) / MYPAINT_TILE_SIZE);
+    int ty1 = floor(floor(y - r_fringe) / MYPAINT_TILE_SIZE);
+    int ty2 = floor(floor(y + r_fringe) / MYPAINT_TILE_SIZE);
+    #ifdef _OPENMP
+    int tiles_n = (tx2 - tx1) * (ty2 - ty1);
+    #endif
+
+    #pragma omp parallel for schedule(static) if(self->threadsafe_tile_requests && tiles_n > 3)
+    for (int ty = ty1; ty <= ty2; ty++) {
+      for (int tx = tx1; tx <= tx2; tx++) {
+
+        // Flush queued draw_dab operations
+        process_tile(self, tx, ty);
+
+        MyPaintTileRequest request_data;
+        const int mipmap_level = 0;
+        mypaint_tile_request_init(&request_data, mipmap_level, tx, ty, TRUE);
+
+        mypaint_tiled_surface_tile_request_start(self, &request_data);
+        uint16_t * rgba_p = request_data.buffer;
+        if (!rgba_p) {
+          printf("Warning: Unable to get tile!\n");
+          break;
+        }
+
+        // first, we calculate the mask (opacity for each pixel)
+        uint16_t mask[MYPAINT_TILE_SIZE*MYPAINT_TILE_SIZE+2*MYPAINT_TILE_SIZE];
+
+        render_dab_mask(mask,
+                        x - tx*MYPAINT_TILE_SIZE,
+                        y - ty*MYPAINT_TILE_SIZE,
+                        radius,
+                        hardness,
+                        aspect_ratio, angle
+                        );
+
+        // TODO: try atomic operations instead
+        #pragma omp critical
+        {
+        get_spectral_color_pixels_accumulate (mask, rgba_p,
+                                     &sum_weight, sum_spectral, &sum_a);
+        }
+
+        mypaint_tiled_surface_tile_request_end(self, &request_data);
+      }
+    }
+
+    assert(sum_weight > 0.0f);
+    sum_a /= sum_weight;
+    for (int i=0; i<36; i++) {
+      sum_spectral[i] /= sum_weight;
+    }
+    *color_a = sum_a;
+    // now un-premultiply the alpha
+    if (sum_a > 0.0f) {
+      for (int i=0; i<36; i++) {
+        CLAMP(spectral[i] = sum_spectral[i] / sum_a, 0.0f, 1.0f);
+      }
+    }else {
+      // it is all transparent, so don't care about the colors
+      // (let's make them ugly so bugs will be visible)
+      for (int i=0; i<36; i++) {
+        spectral[i] = 1.0f;
+      }
+    }
+    // fix rounding problems that do happen due to floating point math
+    *color_a = CLAMP(*color_a, 0.0f, 1.0f);
+}
+
+
+
 /**
  * mypaint_tiled_surface_init: (skip)
  *
@@ -848,6 +943,7 @@ mypaint_tiled_surface_init(MyPaintTiledSurface *self,
     mypaint_surface_init(&self->parent);
     self->parent.draw_dab = draw_dab;
     self->parent.get_color = get_color;
+    self->parent.get_spectral_color = get_spectral_color;
     self->parent.begin_atomic = begin_atomic_default;
     self->parent.end_atomic = end_atomic_default;
 

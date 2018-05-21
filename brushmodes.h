@@ -36,6 +36,12 @@ void get_color_pixels_accumulate (uint16_t * mask,
                                   float * sum_a
                                   );
 
+void get_spectral_color_pixels_accumulate (uint16_t * mask,
+                                  uint16_t * rgba,
+                                  float * sum_weight,
+                                  float * sum_spectral,
+                                  float * sum_a
+                                  );
 
 
 #endif // BRUSHMODES_H

@@ -299,3 +299,50 @@ void get_color_pixels_accumulate (uint16_t * mask,
   *sum_a += a;
 };
 
+// Sum up the spectral/alpha components inside the masked region.
+// Called by get_color_spectral().
+//
+void get_spectral_color_pixels_accumulate (uint16_t * mask,
+                                  uint16_t * rgba,
+                                  float * sum_weight,
+                                  float * sum_spectral,
+                                  float * sum_a
+                                  ) {
+
+
+  // The sum of a 64x64 tile fits into a 32 bit integer, but the sum
+  // of an arbitrary number of tiles may not fit. We assume that we
+  // are processing a single tile at a time, so we can use integers.
+  // But for the result we need floats.
+
+  uint32_t weight = 0;
+  uint32_t spectral[36] = {0};
+  uint32_t a = 0;
+
+  while (1) {
+    for (; mask[0]; mask++, rgba+=4) {
+      uint32_t opa = mask[0];
+      weight += opa;
+      uint16_t spectral_temp[36] = {0};
+      rgb_to_spectral_int(rgba, spectral_temp);
+      
+      for (int i=0; i<36; i++) {
+        spectral[i] += opa*spectral_temp[i]/(1<<15);
+      }
+      
+      a      += opa*rgba[3]/(1<<15);
+
+    }
+    if (!mask[1]) break;
+    rgba += mask[1];
+    mask += 2;
+  }
+
+  // convert integer to float outside the performance critical loop
+  *sum_weight += weight;
+  for (int i=0; i<36; i++) {
+    sum_spectral[i] += spectral[i];
+  }
+  *sum_a += a;
+};
+
