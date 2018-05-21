@@ -1,6 +1,7 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include <stdint.h>
 #include "rng-double.h"
 
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
@@ -42,5 +43,14 @@ void
 rgb_to_srgb_float (float *r_, float *g_, float *b_, float gamma);
 
 float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gboolean get, float smudge_darken, float smudge_desat, float spectral);
+
+void
+rgb_to_spectral (float r, float g, float b, float *spectral_);
+
+void
+rgb_to_spectral_int (uint16_t *rgb, uint16_t *spectral_);
+
+void
+spectral_to_rgb (float *spectral, float *rgb_);
 
 #endif // HELPERS_H

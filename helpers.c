@@ -521,6 +521,68 @@ rgb_to_srgb_float (float *r_, float *g_, float *b_, float gamma) {
   *b_ = rgb[2];
 }
 
+
+void
+rgb_to_spectral_int (uint16_t *rgb, uint16_t *spectral_) {
+
+  //upsample rgb to spectral primaries
+  float spec_r[36] = {0};
+  for (int i=0; i < 36; i++) {
+    spec_r[i] = spectral_r[i] * rgb[0];
+  }
+  float spec_g[36] = {0};
+  for (int i=0; i < 36; i++) {
+    spec_g[i] = spectral_g[i] * rgb[1];
+  }
+  float spec_b[36] = {0};
+  for (int i=0; i < 36; i++) {
+    spec_b[i] = spectral_b[i] * rgb[2];
+  }
+  //collapse into one spd
+  for (int i=0; i<36; i++) {
+    spectral_[i] += spec_r[i] + spec_g[i] + spec_b[i];
+  }
+
+}
+
+void
+rgb_to_spectral (float r, float g, float b, float *spectral_) {
+
+  //upsample rgb to spectral primaries
+  float spec_r[36] = {0};
+  for (int i=0; i < 36; i++) {
+    spec_r[i] = spectral_r[i] * r;
+  }
+  float spec_g[36] = {0};
+  for (int i=0; i < 36; i++) {
+    spec_g[i] = spectral_g[i] * g;
+  }
+  float spec_b[36] = {0};
+  for (int i=0; i < 36; i++) {
+    spec_b[i] = spectral_b[i] * b;
+  }
+  //collapse into one spd
+  for (int i=0; i<36; i++) {
+    spectral_[i] += spec_r[i] + spec_g[i] + spec_b[i];
+  }
+
+}
+
+void
+spectral_to_rgb (float *spectral, float *rgb_) {
+
+  for (int i=0; i<36; i++) {
+    rgb_[0] += T_MATRIX[0][i] * spectral[i];
+    rgb_[1] += T_MATRIX[1][i] * spectral[i];
+    rgb_[2] += T_MATRIX[2][i] * spectral[i];
+  }
+  rgb_[0] = CLAMP(rgb_[0], 0.0f, 1.0f);
+  rgb_[1] = CLAMP(rgb_[1], 0.0f, 1.0f);
+  rgb_[2] = CLAMP(rgb_[2], 0.0f, 1.0f);
+}
+
+
+
 //function to make it easy to blend normal and subtractive color blending modes w/ adjustable gamma
 //a is the current smudge state, b is the get_color (get=1) or the brush color (get=0)
 //mixing smudge_state+get_color is slightly different than mixing brush_color with smudge_color
@@ -587,53 +649,19 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
     //spectral normal mixing
     if (spectral > 0.0) {
       
-      //expand rgb to spectral primaries
-      float spec_ar[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_ar[i] = spectral_r[i] * ar;
-      }
-      float spec_ag[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_ag[i] = spectral_g[i] * ag;
-      }
-      float spec_ab[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_ab[i] = spectral_b[i] * ab;
-      }
-      
-      float spec_br[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_br[i] = spectral_r[i] * br;
-      }
-      float spec_bg[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_bg[i] = spectral_g[i] * bg;
-      }
-      float spec_bb[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_bb[i] = spectral_b[i] * bb;
-      }
-      //collapse each color into one spd each
       float spec_a[36] = {0};
       float spec_b[36] = {0};
-      for (int i=0; i<36; i++) {
-        spec_a[i] += spec_ar[i] + spec_ag[i] + spec_ab[i];
-        spec_b[i] += spec_br[i] + spec_bg[i] + spec_bb[i];
-      }
+
+      rgb_to_spectral(ar, ag, ab, spec_a);
+      rgb_to_spectral(br, bg, bb, spec_b);
+
       //blend spectral primaries normal mode
       float spectralmix[36] = {0};
       for (int i=0; i < 36; i++) {
         spectralmix[i] = fac * spec_a[i] + (1-fac) * spec_b[i];
       }
       //convert to RGB
-      for (int i=0; i<36; i++) {
-        spectralmixnorm[0] += T_MATRIX[0][i] * spectralmix[i];
-        spectralmixnorm[1] += T_MATRIX[1][i] * spectralmix[i];
-        spectralmixnorm[2] += T_MATRIX[2][i] * spectralmix[i];
-      }
-      spectralmixnorm[0] = CLAMP(spectralmixnorm[0], 0.0f, 1.0f);
-      spectralmixnorm[1] = CLAMP(spectralmixnorm[1], 0.0f, 1.0f);
-      spectralmixnorm[2] = CLAMP(spectralmixnorm[2], 0.0f, 1.0f);
+      spectral_to_rgb(spectralmix, spectralmixnorm);
     }
     
     //mix rgb and spectral normal modes:
@@ -683,54 +711,19 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
     }
     
     if (spectral > 0.0) {
-      //expand rgb to spectral primaries
-      float spec_ar[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_ar[i] = spectral_r[i] * ar;
-      }
-      float spec_ag[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_ag[i] = spectral_g[i] * ag;
-      }
-      float spec_ab[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_ab[i] = spectral_b[i] * ab;
-      }
-      
-      float spec_br[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_br[i] = spectral_r[i] * br;
-      }
-      float spec_bg[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_bg[i] = spectral_g[i] * bg;
-      }
-      float spec_bb[36] = {0};
-      for (int i=0; i < 36; i++) {
-        spec_bb[i] = spectral_b[i] * bb;
-      }
-      
-      //collapse each color into one spd each
+
       float spec_a[36] = {0};
       float spec_b[36] = {0};
-      for (int i=0; i<36; i++) {
-        spec_a[i] += spec_ar[i] + spec_ag[i] + spec_ab[i];
-        spec_b[i] += spec_br[i] + spec_bg[i] + spec_bb[i];
-      }
+      
+      rgb_to_spectral(ar, ag, ab, spec_a);
+      rgb_to_spectral(br, bg, bb, spec_b);
       //blend spectral primaries subtractive WGM
       float spectralmix[36] = {0};
       for (int i=0; i < 36; i++) {
         spectralmix[i] = powf(MAX(spec_a[i], 0.0001), subfac) * powf(MAX(spec_b[i], 0.0001), (1-subfac));
       }
       //convert to RGB
-      for (int i=0; i<36; i++) {
-        spectralmixsub[0] += T_MATRIX[0][i] * spectralmix[i];
-        spectralmixsub[1] += T_MATRIX[1][i] * spectralmix[i];
-        spectralmixsub[2] += T_MATRIX[2][i] * spectralmix[i];
-      }
-      spectralmixsub[0] = CLAMP(spectralmixsub[0], 0.0f, 1.0f);
-      spectralmixsub[1] = CLAMP(spectralmixsub[1], 0.0f, 1.0f);
-      spectralmixsub[2] = CLAMP(spectralmixsub[2], 0.0f, 1.0f);
+      spectral_to_rgb(spectralmix, spectralmixsub);
     }
     //mix rgb and spectral sub modes:
     for (int i=0; i < 3; i++) {  
