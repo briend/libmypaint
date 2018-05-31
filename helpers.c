@@ -522,28 +522,28 @@ rgb_to_srgb_float (float *r_, float *g_, float *b_, float gamma) {
 }
 
 
-void
-rgb_to_spectral_int (uint16_t *rgb, uint16_t *spectral_) {
+/*void*/
+/*rgb_to_spectral_int (uint16_t *rgb, uint16_t *spectral_) {*/
 
-  //upsample rgb to spectral primaries
-  float spec_r[36] = {0};
-  for (int i=0; i < 36; i++) {
-    spec_r[i] = spectral_r[i] * rgb[0];
-  }
-  float spec_g[36] = {0};
-  for (int i=0; i < 36; i++) {
-    spec_g[i] = spectral_g[i] * rgb[1];
-  }
-  float spec_b[36] = {0};
-  for (int i=0; i < 36; i++) {
-    spec_b[i] = spectral_b[i] * rgb[2];
-  }
-  //collapse into one spd
-  for (int i=0; i<36; i++) {
-    spectral_[i] += spec_r[i] + spec_g[i] + spec_b[i];
-  }
+/*  //upsample rgb to spectral primaries*/
+/*  float spec_r[36] = {0};*/
+/*  for (int i=0; i < 36; i++) {*/
+/*    spec_r[i] = spectral_r[i] * rgb[0];*/
+/*  }*/
+/*  float spec_g[36] = {0};*/
+/*  for (int i=0; i < 36; i++) {*/
+/*    spec_g[i] = spectral_g[i] * rgb[1];*/
+/*  }*/
+/*  float spec_b[36] = {0};*/
+/*  for (int i=0; i < 36; i++) {*/
+/*    spec_b[i] = spectral_b[i] * rgb[2];*/
+/*  }*/
+/*  //collapse into one spd*/
+/*  for (int i=0; i<36; i++) {*/
+/*    spectral_[i] += spec_r[i] + spec_g[i] + spec_b[i];*/
+/*  }*/
 
-}
+/*}*/
 
 void
 rgb_to_spectral (float r, float g, float b, float *spectral_) {
@@ -584,7 +584,7 @@ spectral_to_rgb (float *spectral, float *rgb_) {
 
 
 //function to make it easy to blend normal and subtractive color blending modes w/ adjustable gamma
-//a is the current smudge state, b is the get_color (get=1) or the brush color (get=0)
+//a is the current smudge state, b is the get_color (get=true) or the brush color (get=false)
 //mixing smudge_state+get_color is slightly different than mixing brush_color with smudge_color
 //so I've used the bool'get' parameter to differentiate them.
 float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gboolean get, float smudge_darken, float smudge_desat, float spectral)
@@ -612,8 +612,8 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
   float ba=b[3];
 
   //convert to linear rgb only if gamma is not 1.0 to avoid redundancy and rounding errors
-  if (gamma != 1.0) {
-    srgb_to_rgb_float(&ar, &ag, &ab, gamma);
+  if (gamma != 1.0 && get == FALSE) {
+    //srgb_to_rgb_float(&ar, &ag, &ab, gamma);
     srgb_to_rgb_float(&br, &bg, &bb, gamma);
   }
 
@@ -740,7 +740,7 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
     result[i] = ((1-normsub)*normmix[i]) + (normsub*submix[i]);
   }
   //Now handle transform if necessary
-  if (gamma != 1.0) {
+  if (gamma != 1.0 && get == FALSE) {
     ar = result[0];
     ag = result[1];
     ab = result[2];
@@ -765,7 +765,7 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
   //Chroma and Luminosity tweak
   //compare result to the smudge_state (a) and tweak the chroma and luma
   //based on hue angle difference in linear HCY
-  if (smudge_desat != 0 || smudge_darken != 0) {
+  if ((smudge_desat != 0 || smudge_darken != 0) && get == FALSE) {
     float smudge_h = a[0];
     float smudge_c = a[1];
     float smudge_y = a[2];
@@ -808,6 +808,10 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
       //convert back to companded sRGB
       hcy_to_rgb_float (&result_h, &result_c, &result_y);
       rgb_to_srgb_float (&result_h, &result_c, &result_y, gamma);
+      
+      for (int i=0; i < 3; i++) {  
+        if (isnan(result[i])) { result[i] = 0.0; }
+      }
 
       result[0] = CLAMP(result_h, 0.0f, 1.0f);
       result[1] = CLAMP(result_c, 0.0f, 1.0f);

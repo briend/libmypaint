@@ -47,8 +47,8 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
 void
 rgb_to_spectral (float r, float g, float b, float *spectral_);
 
-void
-rgb_to_spectral_int (uint16_t *rgb, uint16_t *spectral_);
+/*void*/
+/*rgb_to_spectral_int (uint16_t *rgb, uint16_t *spectral_);*/
 
 void
 spectral_to_rgb (float *spectral, float *rgb_);

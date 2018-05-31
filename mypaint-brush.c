@@ -811,13 +811,17 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
         
         //get RGB and spectral surface colors, then blend them into one RGB smudge color
         
+        float gamma = self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_GAMMA];
         if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL] > 0.0) {
-          mypaint_surface_get_spectral_color(surface, px, py, smudge_radius, surface_color_spectral, &a);
+          mypaint_surface_get_spectral_color(surface, px, py, smudge_radius, surface_color_spectral, &a, gamma);
           spectral_to_rgb(surface_color_spectral, rgb_spectral);
+
         }
         
         if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_SPECTRAL] < 1.0) {
           mypaint_surface_get_color(surface, px, py, smudge_radius, &r, &g, &b, &a);
+          //TODO this gamma should happen before pixels are averaged.
+          srgb_to_rgb_float(&r, &g, &b, gamma);
         }
         
         //blend both methods of getting color

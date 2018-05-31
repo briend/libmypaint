@@ -34,7 +34,8 @@ typedef void (*MyPaintSurfaceGetColorFunction) (MyPaintSurface *self,
 typedef void (*MyPaintSurfaceGetSpectralColorFunction) (MyPaintSurface *self,
                                                 float x, float y,
                                                 float radius,
-                                                float *spectral, float * color_a
+                                                float *spectral, float * color_a,
+                                                float gamma
                                                 );
 
 typedef int (*MyPaintSurfaceDrawDabFunction) (MyPaintSurface *self,
@@ -101,7 +102,8 @@ void
 mypaint_surface_get_spectral_color(MyPaintSurface *self,
                         float x, float y,
                         float radius,
-                        float *spectral, float * color_a
+                        float *spectral, float * color_a,
+                        float gamma
                         );
 
 float
