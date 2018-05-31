@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <math.h>
 
 #include "helpers.h"
 
@@ -306,43 +307,48 @@ void get_spectral_color_pixels_accumulate (uint16_t * mask,
                                   uint16_t * rgba,
                                   float * sum_weight,
                                   float * sum_spectral,
-                                  float * sum_a
+                                  float * sum_a,
+                                  float gamma
                                   ) {
-
-
-  // The sum of a 64x64 tile fits into a 32 bit integer, but the sum
-  // of an arbitrary number of tiles may not fit. We assume that we
-  // are processing a single tile at a time, so we can use integers.
-  // But for the result we need floats.
-
-  uint32_t weight = 0;
-  uint32_t spectral[36] = {0};
-  uint32_t a = 0;
 
   while (1) {
     for (; mask[0]; mask++, rgba+=4) {
-      uint32_t opa = mask[0];
-      weight += opa;
-      uint16_t spectral_temp[36] = {0};
-      rgb_to_spectral_int(rgba, spectral_temp);
+      float alpha = (float)rgba[3] / (1<<15);
+      if (alpha == 0.0) continue;
+      float opa = (float)mask[0] / (1<<15);
       
+      //make linear and straight color, float 0-1
+      float r = powf((float)rgba[0]/(1<<15)/alpha, gamma);
+      float g = powf((float)rgba[1]/(1<<15)/alpha, gamma);
+      float b = powf((float)rgba[2]/(1<<15)/alpha, gamma);
+      
+      float spectral_temp[36] = {0};
+      rgb_to_spectral(r, g, b, spectral_temp);
+
+      float fac = 0;
+      float alpha_sum = 0;
+      if (*sum_weight > 0) {
+        float alpha_sum = alpha *opa  + *sum_a / *sum_weight;
+        fac = alpha * opa / alpha_sum;
+      } else {
+        fac = 1.0;
+      }
+
+      assert(fac >= 0.0 && fac <= 1.0);
+
       for (int i=0; i<36; i++) {
-        spectral[i] += opa*spectral_temp[i]/(1<<15);
+        if (isnan(sum_spectral[i])) { sum_spectral[i] = 0.0; fac = 1.0; }
+        sum_spectral[i] = powf(MAX(sum_spectral[i], 0.0001), (1 - fac)) * powf(MAX(spectral_temp[i], 0.0001), (fac));
       }
       
-      a      += opa*rgba[3]/(1<<15);
+      *sum_weight += opa;
+      *sum_a      += opa * alpha;
 
     }
     if (!mask[1]) break;
     rgba += mask[1];
     mask += 2;
   }
-
-  // convert integer to float outside the performance critical loop
-  *sum_weight += weight;
-  for (int i=0; i<36; i++) {
-    sum_spectral[i] += spectral[i];
-  }
-  *sum_a += a;
 };
+
 

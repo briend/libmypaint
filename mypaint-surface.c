@@ -56,11 +56,12 @@ void
 mypaint_surface_get_spectral_color(MyPaintSurface *self,
                         float x, float y,
                         float radius,
-                        float *spectral, float * color_a
+                        float *spectral, float * color_a,
+                        float gamma
                         )
 {
     assert(self->get_spectral_color);
-    self->get_spectral_color(self, x, y, radius, spectral, color_a);
+    self->get_spectral_color(self, x, y, radius, spectral, color_a, gamma);
 }
 
 

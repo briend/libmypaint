@@ -40,7 +40,8 @@ void get_spectral_color_pixels_accumulate (uint16_t * mask,
                                   uint16_t * rgba,
                                   float * sum_weight,
                                   float * sum_spectral,
-                                  float * sum_a
+                                  float * sum_a,
+                                  float gamma
                                   );
 
 

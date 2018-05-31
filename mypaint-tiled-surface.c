@@ -836,7 +836,7 @@ void get_color (MyPaintSurface *surface, float x, float y,
 
 void get_spectral_color (MyPaintSurface *surface, float x, float y,
                   float radius,
-                  float *spectral, float * color_a
+                  float *sum_spectral, float * color_a, float gamma
                   )
 {
     MyPaintTiledSurface *self = (MyPaintTiledSurface *)surface;
@@ -847,12 +847,9 @@ void get_spectral_color (MyPaintSurface *surface, float x, float y,
     const float angle = 0.0f;
 
     float sum_weight, sum_a;
-    float sum_spectral[36] = {0};
+    //float sum_spectral[36] = {0.0f};
     sum_weight = sum_a = 0.0f;
     
-/*    for (int i=0; i<36; i++) {*/
-/*        spectral[i] = 1.0f;*/
-/*    }*/
     // WARNING: some code duplication with draw_dab
 
     float r_fringe = radius + 1.0f; // +1 should not be required, only to be sure
@@ -898,31 +895,17 @@ void get_spectral_color (MyPaintSurface *surface, float x, float y,
         #pragma omp critical
         {
         get_spectral_color_pixels_accumulate (mask, rgba_p,
-                                     &sum_weight, sum_spectral, &sum_a);
+                                     &sum_weight, sum_spectral, &sum_a, gamma);
         }
 
         mypaint_tiled_surface_tile_request_end(self, &request_data);
       }
     }
 
-    assert(sum_weight > 0.0f);
-    sum_a /= sum_weight;
-    for (int i=0; i<36; i++) {
-      sum_spectral[i] /= sum_weight;
+    if (sum_weight > 0.0f) {
+      sum_a /= sum_weight;
     }
     *color_a = sum_a;
-    // now un-premultiply the alpha
-    if (sum_a > 0.0f) {
-      for (int i=0; i<36; i++) {
-        CLAMP(spectral[i] = sum_spectral[i] / sum_a, 0.0f, 1.0f);
-      }
-    }else {
-      // it is all transparent, so don't care about the colors
-      // (let's make them ugly so bugs will be visible)
-      for (int i=0; i<36; i++) {
-        spectral[i] = 1.0f;
-      }
-    }
     // fix rounding problems that do happen due to floating point math
     *color_a = CLAMP(*color_a, 0.0f, 1.0f);
 }
