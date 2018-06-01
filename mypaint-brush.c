@@ -666,8 +666,8 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
       // dabs_per_pixel is just estimated roughly, I didn't think hard
       // about the case when the radius changes during the stroke
       dabs_per_pixel = (
-                        mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS]) +
-                        mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_DABS_PER_BASIC_RADIUS])
+                        self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS] +
+                        self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_BASIC_RADIUS]
                         ) * 2.0;
 
       // the correction is probably not wanted if the dabs don't overlap
@@ -1056,9 +1056,9 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
 
     // FIXME: no need for base_value or for the range checks above IF always the interpolation
     //        function will be called before this one
-    res1 = dist / self->states[MYPAINT_BRUSH_STATE_ACTUAL_RADIUS] * mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS]);
-    res2 = dist / base_radius   * mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_DABS_PER_BASIC_RADIUS]);
-    res3 = dt * mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_DABS_PER_SECOND]);
+    res1 = dist / self->states[MYPAINT_BRUSH_STATE_ACTUAL_RADIUS] * self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS];
+    res2 = dist / base_radius   * self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_BASIC_RADIUS];
+    res3 = dt * self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_SECOND];
     return res1 + res2 + res3;
   }
 
