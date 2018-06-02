@@ -705,9 +705,9 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
       //mix with Weighted Geometric Mean
       //don't allow absolute zero because it has infinite
       //darkening power
-      rgbmixsub[0] = powf(MAX(ar, 0.0001), subfac) * powf(MAX(br, 0.0001),(1-subfac));
-      rgbmixsub[1] = powf(MAX(ag, 0.0001), subfac) * powf(MAX(bg, 0.0001),(1-subfac));
-      rgbmixsub[2] = powf(MAX(ab, 0.0001), subfac) * powf(MAX(bb, 0.0001),(1-subfac));
+      rgbmixsub[0] = powf(MAX(ar, WGM_EPSILON), subfac) * powf(MAX(br, WGM_EPSILON),(1-subfac));
+      rgbmixsub[1] = powf(MAX(ag, WGM_EPSILON), subfac) * powf(MAX(bg, WGM_EPSILON),(1-subfac));
+      rgbmixsub[2] = powf(MAX(ab, WGM_EPSILON), subfac) * powf(MAX(bb, WGM_EPSILON),(1-subfac));
     }
     
     if (spectral > 0.0) {
@@ -720,7 +720,7 @@ float * mix_colors(float *a, float *b, float fac, float gamma, float normsub, gb
       //blend spectral primaries subtractive WGM
       float spectralmix[36] = {0};
       for (int i=0; i < 36; i++) {
-        spectralmix[i] = powf(MAX(spec_a[i], 0.0001), subfac) * powf(MAX(spec_b[i], 0.0001), (1-subfac));
+        spectralmix[i] = powf(MAX(spec_a[i], WGM_EPSILON), subfac) * powf(MAX(spec_b[i], WGM_EPSILON), (1-subfac));
       }
       //convert to RGB
       spectral_to_rgb(spectralmix, spectralmixsub);
