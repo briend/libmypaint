@@ -338,7 +338,7 @@ void get_spectral_color_pixels_accumulate (uint16_t * mask,
 
       for (int i=0; i<36; i++) {
         if (isnan(sum_spectral[i])) { sum_spectral[i] = 0.0; fac = 1.0; }
-        sum_spectral[i] = powf(MAX(sum_spectral[i], 0.0001), (1 - fac)) * powf(MAX(spectral_temp[i], 0.0001), (fac));
+        sum_spectral[i] = powf(MAX(sum_spectral[i], WGM_EPSILON), (1 - fac)) * powf(MAX(spectral_temp[i], WGM_EPSILON), (fac));
       }
       
       *sum_weight += opa;

@@ -12,6 +12,7 @@
 #define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 #define MAX3(a, b, c) ((a)>(b)?MAX((a),(c)):MAX((b),(c)))
 #define MIN3(a, b, c) ((a)<(b)?MIN((a),(c)):MIN((b),(c)))
+#define WGM_EPSILON 0.0001
 
 void
 hsl_to_rgb_float (float *h_, float *s_, float *l_);
