@@ -1015,7 +1015,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
     return mypaint_surface_draw_dab (surface, x, y, radius, color_h, color_s, color_v, opaque, hardness, eraser_target_alpha,
                               self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_RATIO], self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_ANGLE],
                               self->settings_value[MYPAINT_BRUSH_SETTING_LOCK_ALPHA],
-                              self->settings_value[MYPAINT_BRUSH_SETTING_COLORIZE]);
+                              self->settings_value[MYPAINT_BRUSH_SETTING_COLORIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE_NUM]);
   }
 
   // How many dabs will be drawn between the current and the next (x, y, pressure, +dt) position?
