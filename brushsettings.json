@@ -713,6 +713,24 @@
         {
             "constant": false,
             "default": 0.0,
+            "displayed_name": "Posterize",
+            "internal_name": "posterize",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "tooltip": "Strength of posteriztion, reducing its colors via the Posterize Levels setting, while retaining alpha."
+        },
+        {
+            "constant": false,
+            "default": 1.0,
+            "displayed_name": "Posterize Levels",
+            "internal_name": "posterize_num",
+            "maximum": 256.0,
+            "minimum": 1.0,
+            "tooltip": "Level of poserization.  Values above 50 may not be noticable."
+        },
+        {
+            "constant": false,
+            "default": 0.0,
             "displayed_name": "Snap to pixel",
             "internal_name": "snap_to_pixel",
             "maximum": 1.0,
