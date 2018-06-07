@@ -466,7 +466,7 @@ process_op(uint16_t *rgba_p, uint16_t *mask,
 
     if (op->lock_alpha) {
       draw_dab_pixels_BlendMode_LockAlpha(mask, rgba_p,
-                                          op->color_r, op->color_g, op->color_b, op->lock_alpha*op->opaque*(1<<15));
+                                          op->color_r, op->color_g, op->color_b, op->lock_alpha*op->opaque*(1 - op->colorize)*(1 - op->posterize)*(1<<15));
     }
     if (op->colorize) {
       draw_dab_pixels_BlendMode_Color(mask, rgba_p,
