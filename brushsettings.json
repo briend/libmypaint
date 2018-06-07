@@ -721,12 +721,12 @@
         },
         {
             "constant": false,
-            "default": 1.0,
+            "default": 0.05,
             "displayed_name": "Posterize Levels",
             "internal_name": "posterize_num",
-            "maximum": 256.0,
-            "minimum": 1.0,
-            "tooltip": "Level of poserization.  Values above 50 may not be noticable."
+            "maximum": 1.28,
+            "minimum": 0.01,
+            "tooltip": "Level of posterization (x100).  Values above 0.5 may not be noticable."
         },
         {
             "constant": false,

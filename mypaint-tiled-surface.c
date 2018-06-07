@@ -555,7 +555,7 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
     op->lock_alpha = CLAMP(lock_alpha, 0.0f, 1.0f);
     op->colorize = CLAMP(colorize, 0.0f, 1.0f);
     op->posterize = CLAMP(posterize, 0.0f, 1.0f);
-    op->posterize_num = CLAMP(ROUND(posterize_num), 1, 256);
+    op->posterize_num = CLAMP(ROUND(posterize_num * 100.0), 1, 128);
     if (op->radius < 0.1f) return FALSE; // don't bother with dabs smaller than 0.1 pixel
     if (op->hardness == 0.0f) return FALSE; // infintly small center point, fully transparent outside
     if (op->opaque == 0.0f) return FALSE;
