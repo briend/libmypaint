@@ -30,6 +30,14 @@ typedef void (*MyPaintSurfaceGetColorFunction) (MyPaintSurface *self,
                                                 float radius,
                                                 float * color_r, float * color_g, float * color_b, float * color_a
                                                 );
+
+typedef void (*MyPaintSurfaceGetSpectralColorFunction) (MyPaintSurface *self,
+                                                float x, float y,
+                                                float radius,
+                                                float *spectral, float * color_a,
+                                                float gamma
+                                                );
+
 typedef int (*MyPaintSurfaceDrawDabFunction) (MyPaintSurface *self,
                        float x, float y,
                        float radius,
@@ -38,7 +46,9 @@ typedef int (*MyPaintSurfaceDrawDabFunction) (MyPaintSurface *self,
                        float alpha_eraser,
                        float aspect_ratio, float angle,
                        float lock_alpha,
-                       float colorize);
+                       float colorize,
+                       float posterize,
+                       float posterize_num);
 
 typedef void (*MyPaintSurfaceDestroyFunction) (MyPaintSurface *self);
 
@@ -57,6 +67,7 @@ typedef void (*MyPaintSurfaceEndAtomicFunction) (MyPaintSurface *self, MyPaintRe
 struct MyPaintSurface {
     MyPaintSurfaceDrawDabFunction draw_dab;
     MyPaintSurfaceGetColorFunction get_color;
+    MyPaintSurfaceGetSpectralColorFunction get_spectral_color;
     MyPaintSurfaceBeginAtomicFunction begin_atomic;
     MyPaintSurfaceEndAtomicFunction end_atomic;
     MyPaintSurfaceDestroyFunction destroy;
@@ -78,7 +89,9 @@ mypaint_surface_draw_dab(MyPaintSurface *self,
                        float alpha_eraser,
                        float aspect_ratio, float angle,
                        float lock_alpha,
-                       float colorize
+                       float colorize,
+                       float posterize,
+                       float posterize_num
                        );
 
 
@@ -87,6 +100,14 @@ mypaint_surface_get_color(MyPaintSurface *self,
                         float x, float y,
                         float radius,
                         float * color_r, float * color_g, float * color_b, float * color_a
+                        );
+                        
+void
+mypaint_surface_get_spectral_color(MyPaintSurface *self,
+                        float x, float y,
+                        float radius,
+                        float *spectral, float * color_a,
+                        float gamma
                         );
 
 float

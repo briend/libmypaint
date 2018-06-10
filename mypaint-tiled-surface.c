@@ -466,12 +466,17 @@ process_op(uint16_t *rgba_p, uint16_t *mask,
 
     if (op->lock_alpha) {
       draw_dab_pixels_BlendMode_LockAlpha(mask, rgba_p,
-                                          op->color_r, op->color_g, op->color_b, op->lock_alpha*op->opaque*(1<<15));
+                                          op->color_r, op->color_g, op->color_b, op->lock_alpha*op->opaque*(1 - op->colorize)*(1 - op->posterize)*(1<<15));
     }
     if (op->colorize) {
       draw_dab_pixels_BlendMode_Color(mask, rgba_p,
                                       op->color_r, op->color_g, op->color_b,
                                       op->colorize*op->opaque*(1<<15));
+    }
+    if (op->posterize) {
+      draw_dab_pixels_BlendMode_Posterize(mask, rgba_p,
+                                      op->posterize*op->opaque*(1<<15),
+                                      op->posterize_num);
     }
 }
 
@@ -531,7 +536,9 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
                float color_a,
                float aspect_ratio, float angle,
                float lock_alpha,
-               float colorize
+               float colorize,
+               float posterize,
+               float posterize_num
                )
 
 {
@@ -547,6 +554,8 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
     op->hardness = CLAMP(hardness, 0.0f, 1.0f);
     op->lock_alpha = CLAMP(lock_alpha, 0.0f, 1.0f);
     op->colorize = CLAMP(colorize, 0.0f, 1.0f);
+    op->posterize = CLAMP(posterize, 0.0f, 1.0f);
+    op->posterize_num = CLAMP(ROUND(posterize_num * 100.0), 1, 128);
     if (op->radius < 0.1f) return FALSE; // don't bother with dabs smaller than 0.1 pixel
     if (op->hardness == 0.0f) return FALSE; // infintly small center point, fully transparent outside
     if (op->opaque == 0.0f) return FALSE;
@@ -566,6 +575,7 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
 
     op->normal *= 1.0f-op->lock_alpha;
     op->normal *= 1.0f-op->colorize;
+    op->normal *= 1.0f-op->posterize;
 
     if (op->aspect_ratio<1.0f) op->aspect_ratio=1.0f;
 
@@ -599,7 +609,9 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
                float color_a,
                float aspect_ratio, float angle,
                float lock_alpha,
-               float colorize)
+               float colorize,
+               float posterize,
+               float posterize_num)
 {
   MyPaintTiledSurface *self = (MyPaintTiledSurface *)surface;
 
@@ -608,7 +620,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
   // Normal pass
   if (draw_dab_internal(self, x, y, radius, color_r, color_g, color_b,
                         opaque, hardness, color_a, aspect_ratio, angle,
-                        lock_alpha, colorize)) {
+                        lock_alpha, colorize, posterize, posterize_num)) {
       surface_modified = TRUE;
   }
 
@@ -630,7 +642,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
           case MYPAINT_SYMMETRY_TYPE_VERTICAL:
             if (draw_dab_internal(self, symm_x, y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, -angle,
-                                   lock_alpha, colorize)) {
+                                   lock_alpha, colorize, posterize, posterize_num)) {
                 surface_modified = TRUE;
             }
             break;
@@ -638,7 +650,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
           case MYPAINT_SYMMETRY_TYPE_HORIZONTAL:
             if (draw_dab_internal(self, x, symm_y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, angle + 180.0,
-                                   lock_alpha, colorize)) {
+                                   lock_alpha, colorize, posterize, posterize_num)) {
                 surface_modified = TRUE;
             }
             break;
@@ -647,19 +659,19 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
             // reflect vertically
             if (draw_dab_internal(self, symm_x, y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, -angle,
-                                   lock_alpha, colorize)) {
+                                   lock_alpha, colorize, posterize, posterize_num)) {
                 dab_count++;
             }
             // reflect horizontally
             if (draw_dab_internal(self, x, symm_y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, angle + 180.0,
-                                   lock_alpha, colorize)) {
+                                   lock_alpha, colorize, posterize, posterize_num)) {
                 dab_count++;
             }
             // reflect horizontally and vertically
             if (draw_dab_internal(self, symm_x, symm_y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, -angle - 180.0,
-                                   lock_alpha, colorize)) {
+                                   lock_alpha, colorize, posterize, posterize_num)) {
                 dab_count++;
             }
             if (dab_count == 4) {
@@ -687,7 +699,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
                     if (!draw_dab_internal(self, rot_x, rot_y, radius, color_r, color_g, color_b,
                                            opaque, hardness, color_a,
                                            aspect_ratio, -angle + symmetry_angle_offset,
-                                           lock_alpha, colorize)) {
+                                           lock_alpha, colorize, posterize, posterize_num)) {
                         failed_subdabs = TRUE;
                         break;
                     }
@@ -718,7 +730,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
                     if (!draw_dab_internal(self, rot_x, rot_y, radius, color_r, color_g, color_b,
                                            opaque, hardness, color_a, aspect_ratio,
                                            angle + symmetry_angle_offset,
-                                           lock_alpha, colorize)) {
+                                           lock_alpha, colorize, posterize, posterize_num)) {
                         break;
                     }
                 }
@@ -834,6 +846,84 @@ void get_color (MyPaintSurface *surface, float x, float y,
     *color_a = CLAMP(*color_a, 0.0f, 1.0f);
 }
 
+void get_spectral_color (MyPaintSurface *surface, float x, float y,
+                  float radius,
+                  float *sum_spectral, float * color_a, float gamma
+                  )
+{
+    MyPaintTiledSurface *self = (MyPaintTiledSurface *)surface;
+
+    if (radius < 1.0f) radius = 1.0f;
+    const float hardness = 0.5f;
+    const float aspect_ratio = 1.0f;
+    const float angle = 0.0f;
+
+    float sum_weight, sum_a;
+    //float sum_spectral[36] = {0.0f};
+    sum_weight = sum_a = 0.0f;
+    
+    // WARNING: some code duplication with draw_dab
+
+    float r_fringe = radius + 1.0f; // +1 should not be required, only to be sure
+
+    int tx1 = floor(floor(x - r_fringe) / MYPAINT_TILE_SIZE);
+    int tx2 = floor(floor(x + r_fringe) / MYPAINT_TILE_SIZE);
+    int ty1 = floor(floor(y - r_fringe) / MYPAINT_TILE_SIZE);
+    int ty2 = floor(floor(y + r_fringe) / MYPAINT_TILE_SIZE);
+    #ifdef _OPENMP
+    int tiles_n = (tx2 - tx1) * (ty2 - ty1);
+    #endif
+
+    #pragma omp parallel for schedule(static) if(self->threadsafe_tile_requests && tiles_n > 3)
+    for (int ty = ty1; ty <= ty2; ty++) {
+      for (int tx = tx1; tx <= tx2; tx++) {
+
+        // Flush queued draw_dab operations
+        process_tile(self, tx, ty);
+
+        MyPaintTileRequest request_data;
+        const int mipmap_level = 0;
+        mypaint_tile_request_init(&request_data, mipmap_level, tx, ty, TRUE);
+
+        mypaint_tiled_surface_tile_request_start(self, &request_data);
+        uint16_t * rgba_p = request_data.buffer;
+        if (!rgba_p) {
+          printf("Warning: Unable to get tile!\n");
+          break;
+        }
+
+        // first, we calculate the mask (opacity for each pixel)
+        uint16_t mask[MYPAINT_TILE_SIZE*MYPAINT_TILE_SIZE+2*MYPAINT_TILE_SIZE];
+
+        render_dab_mask(mask,
+                        x - tx*MYPAINT_TILE_SIZE,
+                        y - ty*MYPAINT_TILE_SIZE,
+                        radius,
+                        hardness,
+                        aspect_ratio, angle
+                        );
+
+        // TODO: try atomic operations instead
+        #pragma omp critical
+        {
+        get_spectral_color_pixels_accumulate (mask, rgba_p,
+                                     &sum_weight, sum_spectral, &sum_a, gamma);
+        }
+
+        mypaint_tiled_surface_tile_request_end(self, &request_data);
+      }
+    }
+
+    if (sum_weight > 0.0f) {
+      sum_a /= sum_weight;
+    }
+    *color_a = sum_a;
+    // fix rounding problems that do happen due to floating point math
+    *color_a = CLAMP(*color_a, 0.0f, 1.0f);
+}
+
+
+
 /**
  * mypaint_tiled_surface_init: (skip)
  *
@@ -848,6 +938,7 @@ mypaint_tiled_surface_init(MyPaintTiledSurface *self,
     mypaint_surface_init(&self->parent);
     self->parent.draw_dab = draw_dab;
     self->parent.get_color = get_color;
+    self->parent.get_spectral_color = get_spectral_color;
     self->parent.begin_atomic = begin_atomic_default;
     self->parent.end_atomic = end_atomic_default;
 

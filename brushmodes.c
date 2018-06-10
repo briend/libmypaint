@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <math.h>
 
 #include "helpers.h"
 
@@ -66,7 +67,39 @@ void draw_dab_pixels_BlendMode_Normal (uint16_t * mask,
   }
 };
 
+//Posterize.  Basically exactly like GIMP's posterize
+//reduces colors by adjustable amount (posterize_num).
+//posterize the canvas, then blend that via opacity
+//does not affect alpha
 
+void draw_dab_pixels_BlendMode_Posterize (uint16_t * mask,
+                                       uint16_t * rgba,
+                                       uint16_t opacity,
+                                       uint16_t posterize_num) {
+
+  while (1) {
+    for (; mask[0]; mask++, rgba+=4) {
+     
+      float r = (float)rgba[0] / (1<<15);
+      float g = (float)rgba[1] / (1<<15);
+      float b = (float)rgba[2] / (1<<15);
+
+      uint32_t post_r = (1<<15) * ROUND(r * posterize_num) / posterize_num;
+      uint32_t post_g = (1<<15) * ROUND(g * posterize_num) / posterize_num;
+      uint32_t post_b = (1<<15) * ROUND(b * posterize_num) / posterize_num;
+      
+      uint32_t opa_a = mask[0]*(uint32_t)opacity/(1<<15); // topAlpha
+      uint32_t opa_b = (1<<15)-opa_a; // bottomAlpha
+      rgba[0] = (opa_a*post_r + opa_b*rgba[0])/(1<<15);
+      rgba[1] = (opa_a*post_g + opa_b*rgba[1])/(1<<15);
+      rgba[2] = (opa_a*post_b + opa_b*rgba[2])/(1<<15);
+
+    }
+    if (!mask[1]) break;
+    rgba += mask[1];
+    mask += 2;
+  }
+};
 
 // Colorize: apply the source hue and saturation, retaining the target
 // brightness. Same thing as in the PDF spec addendum, and upcoming SVG
@@ -298,4 +331,56 @@ void get_color_pixels_accumulate (uint16_t * mask,
   *sum_b += b;
   *sum_a += a;
 };
+
+// Sum up the spectral/alpha components inside the masked region.
+// Called by get_color_spectral().
+//
+void get_spectral_color_pixels_accumulate (uint16_t * mask,
+                                  uint16_t * rgba,
+                                  float * sum_weight,
+                                  float * sum_spectral,
+                                  float * sum_a,
+                                  float gamma
+                                  ) {
+
+  while (1) {
+    for (; mask[0]; mask++, rgba+=4) {
+      float alpha = (float)rgba[3] / (1<<15);
+      if (alpha == 0.0) continue;
+      float opa = (float)mask[0] / (1<<15);
+      
+      //make linear and straight color, float 0-1
+      float r = powf((float)rgba[0]/(1<<15)/alpha, gamma);
+      float g = powf((float)rgba[1]/(1<<15)/alpha, gamma);
+      float b = powf((float)rgba[2]/(1<<15)/alpha, gamma);
+      
+      float spectral_temp[36] = {0};
+      rgb_to_spectral(r, g, b, spectral_temp);
+
+      float fac = 0;
+      float alpha_sum = 0;
+      if (*sum_weight > 0) {
+        float alpha_sum = alpha *opa  + *sum_a / *sum_weight;
+        fac = alpha * opa / alpha_sum;
+      } else {
+        fac = 1.0;
+      }
+
+      assert(fac >= 0.0 && fac <= 1.0);
+
+      for (int i=0; i<36; i++) {
+        if (isnan(sum_spectral[i])) { sum_spectral[i] = 0.0; fac = 1.0; }
+        sum_spectral[i] = powf(MAX(sum_spectral[i], WGM_EPSILON), (1 - fac)) * powf(MAX(spectral_temp[i], WGM_EPSILON), (fac));
+      }
+      
+      *sum_weight += opa;
+      *sum_a      += opa * alpha;
+
+    }
+    if (!mask[1]) break;
+    rgba += mask[1];
+    mask += 2;
+  }
+};
+
 

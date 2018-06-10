@@ -32,12 +32,15 @@ mypaint_surface_draw_dab(MyPaintSurface *self,
                        float alpha_eraser,
                        float aspect_ratio, float angle,
                        float lock_alpha,
-                       float colorize
+                       float colorize,
+                       float posterize,
+                       float posterize_num
                        )
 {
     assert(self->draw_dab);
     return self->draw_dab(self, x, y, radius, color_r, color_g, color_b,
-                   opaque, hardness, alpha_eraser, aspect_ratio, angle, lock_alpha, colorize);
+                   opaque, hardness, alpha_eraser, aspect_ratio, angle,
+                   lock_alpha, colorize, posterize, posterize_num);
 }
 
 
@@ -51,6 +54,19 @@ mypaint_surface_get_color(MyPaintSurface *self,
     assert(self->get_color);
     self->get_color(self, x, y, radius, color_r, color_g, color_b, color_a);
 }
+
+void
+mypaint_surface_get_spectral_color(MyPaintSurface *self,
+                        float x, float y,
+                        float radius,
+                        float *spectral, float * color_a,
+                        float gamma
+                        )
+{
+    assert(self->get_spectral_color);
+    self->get_spectral_color(self, x, y, radius, spectral, color_a, gamma);
+}
+
 
 /**
  * mypaint_surface_init: (skip)

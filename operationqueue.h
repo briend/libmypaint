@@ -19,6 +19,8 @@ typedef struct {
     float normal;
     float lock_alpha;
     float colorize;
+    float posterize;
+    float posterize_num;
 } OperationDataDrawDab;
 
 typedef struct OperationQueue OperationQueue;
