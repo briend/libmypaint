@@ -1247,7 +1247,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
           self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION] = 180;
         } else {
           //converts barrel_ration to degrees, offsets it 90 degrees to make the button at the top be zero.  Subtract ascension because it directly affects the rotation values.
-	        step_barrel_rotation	 = frac * smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION],barrel_rotation * 360 + 90 - self->states[MYPAINT_BRUSH_STATE_ASCENSION] -180.0);
+	        step_barrel_rotation	 = frac * smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION],barrel_rotation * 360 + 90 - self->states[MYPAINT_BRUSH_STATE_ASCENSION] - self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] -180.0);
 	      }
       update_states_and_setting_values (self, step_ddab, step_dx, step_dy, step_dpressure, step_declination, step_ascension, step_dtime, step_viewzoom, step_viewrotation, step_barrel_rotation);
       }
@@ -1287,7 +1287,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
         self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION] = 180;
         }
       else {
-	      step_barrel_rotation	 = smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION],barrel_rotation * 360 +90 - self->states[MYPAINT_BRUSH_STATE_ASCENSION] -180.0);
+	      step_barrel_rotation	 = smallest_angular_difference(self->states[MYPAINT_BRUSH_STATE_BARREL_ROTATION],barrel_rotation * 360 +90 - self->states[MYPAINT_BRUSH_STATE_ASCENSION] - self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] -180.0);
 	      }
 
       //dtime_left = 0; but that value is not used any more
