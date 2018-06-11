@@ -816,6 +816,9 @@
         "flip",
         "gridmap_x",
         "gridmap_y",
-        "barrel_rotation"
+        "barrel_rotation",
+        "dabs_per_basic_radius",
+        "dabs_per_actual_radius",
+        "dabs_per_second"
     ]
 }
