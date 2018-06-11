@@ -1067,7 +1067,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
     //on first load if isnan the engine messes up and won't paint
     //until you switch modes
     float res4 = res1 + res2 + res3;
-    if (isnan(res4)) { res4 = 0.0; }
+    if (isnan(res4) || res4 < 0.0) { res4 = 0.0; }
     return res4;
   }
 
