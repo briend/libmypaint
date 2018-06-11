@@ -804,6 +804,9 @@
         "attack_angle",
         "flip",
         "gridmap_x",
-        "gridmap_y"
+        "gridmap_y",
+        "dabs_per_basic_radius",
+        "dabs_per_actual_radius",
+        "dabs_per_second"
     ]
 }

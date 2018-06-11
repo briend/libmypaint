@@ -457,6 +457,11 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
     self->states[MYPAINT_BRUSH_STATE_X]        += step_dx;
     self->states[MYPAINT_BRUSH_STATE_Y]        += step_dy;
     self->states[MYPAINT_BRUSH_STATE_PRESSURE] += step_dpressure;
+    
+    self->states[MYPAINT_BRUSH_STATE_DABS_PER_BASIC_RADIUS] = self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_BASIC_RADIUS];
+    self->states[MYPAINT_BRUSH_STATE_DABS_PER_ACTUAL_RADIUS] = self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS];
+    self->states[MYPAINT_BRUSH_STATE_DABS_PER_SECOND] = self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS];
+    
 
     self->states[MYPAINT_BRUSH_STATE_DECLINATION] += step_declination;
     self->states[MYPAINT_BRUSH_STATE_ASCENSION] += step_ascension;
@@ -666,8 +671,8 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
       // dabs_per_pixel is just estimated roughly, I didn't think hard
       // about the case when the radius changes during the stroke
       dabs_per_pixel = (
-                        self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS] +
-                        self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_BASIC_RADIUS]
+                        self->states[MYPAINT_BRUSH_STATE_DABS_PER_ACTUAL_RADIUS] +
+                        self->states[MYPAINT_BRUSH_STATE_DABS_PER_BASIC_RADIUS]
                         ) * 2.0;
 
       // the correction is probably not wanted if the dabs don't overlap
@@ -1056,10 +1061,14 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
 
     // FIXME: no need for base_value or for the range checks above IF always the interpolation
     //        function will be called before this one
-    res1 = dist / self->states[MYPAINT_BRUSH_STATE_ACTUAL_RADIUS] * self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_ACTUAL_RADIUS];
-    res2 = dist / base_radius   * self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_BASIC_RADIUS];
-    res3 = dt * self->settings_value[MYPAINT_BRUSH_SETTING_DABS_PER_SECOND];
-    return res1 + res2 + res3;
+    res1 = dist / self->states[MYPAINT_BRUSH_STATE_ACTUAL_RADIUS] * self->states[MYPAINT_BRUSH_STATE_DABS_PER_ACTUAL_RADIUS];
+    res2 = dist / base_radius   * self->states[MYPAINT_BRUSH_STATE_DABS_PER_BASIC_RADIUS];
+    res3 = dt * self->states[MYPAINT_BRUSH_STATE_DABS_PER_SECOND];
+    //on first load if isnan the engine messes up and won't paint
+    //until you switch modes
+    float res4 = res1 + res2 + res3;
+    if (isnan(res4)) { res4 = 0.0; }
+    return res4;
   }
 
   /**
