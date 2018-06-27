@@ -801,7 +801,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
       // expected to hurt quality too much. We call it at most every
       // second dab.
       float r, g, b, a;
-      float surface_color_spectral[36] = {0};
+      float surface_color_spectral[36] = {WGM_EPSILON};
       float rgb_spectral[3] = {0};
       smudge_buckets[bucket][8] *= fac;
       if (smudge_buckets[bucket][8] < (powf(0.5*fac, self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_LENGTH_LOG])) + 0.0000000000000001) {

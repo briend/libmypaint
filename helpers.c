@@ -547,7 +547,10 @@ rgb_to_srgb_float (float *r_, float *g_, float *b_, float gamma) {
 
 void
 rgb_to_spectral (float r, float g, float b, float *spectral_) {
-
+  
+  r = MAX(r, WGM_EPSILON);
+  g = MAX(g, WGM_EPSILON);
+  b = MAX(b, WGM_EPSILON);
   //upsample rgb to spectral primaries
   float spec_r[36] = {0};
   for (int i=0; i < 36; i++) {
