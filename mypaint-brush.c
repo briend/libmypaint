@@ -855,7 +855,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
         smudge_buckets[bucket][4] = r;
         smudge_buckets[bucket][5] = g;
         smudge_buckets[bucket][6] = b;
-        smudge_buckets[bucket][7] = a;
+        smudge_buckets[bucket][7] = CLAMP(a - powf(self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_WATER], 2.0), 0.0, 1.0);
         
       } else {
         r = smudge_buckets[bucket][4];

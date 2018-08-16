@@ -598,6 +598,15 @@
         },
         {
             "constant": false, 
+            "default": 0.0, 
+            "displayed_name": "Smudge Water", 
+            "internal_name": "smudge_water", 
+            "maximum": 1.0, 
+            "minimum": 0.0, 
+            "tooltip": "Control how much water (alpha) is added to the sampled canvas color before blended with brush color"
+        },
+        {
+            "constant": false, 
             "default": 1.0, 
             "displayed_name": "Smudge Pow", 
             "internal_name": "smudge_gamma", 
