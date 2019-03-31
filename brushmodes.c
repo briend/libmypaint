@@ -378,14 +378,9 @@ void get_color_pixels_accumulate (float *mask,
                                   float * sum_r,
                                   float * sum_g,
                                   float * sum_b,
-                                  float * sum_a
+                                  float * sum_a,
+                                  float paint
                                   ) {
-
-
-  // The sum of a 64x64 tile fits into a 32 bit integer, but the sum
-  // of an arbitrary number of tiles may not fit. We assume that we
-  // are processing a single tile at a time, so we can use integers.
-  // But for the result we need floats.
 
   float weight = 0;
   float r = 0;
@@ -414,6 +409,7 @@ void get_color_pixels_accumulate (float *mask,
   *sum_b += b;
   *sum_a += a;
 }
+
 
 
 
