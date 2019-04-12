@@ -46,6 +46,7 @@
 // resultAlpha = topAlpha + (1.0 - topAlpha) * bottomAlpha
 // resultColor = topColor + (1.0 - topAlpha) * bottomColor
 //
+<<<<<<< HEAD
 void draw_dab_pixels_BlendMode_Normal (float *mask,
                                        float *rgba_buffer, DabBounds *b,
                                        float color_r,
@@ -310,7 +311,6 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser_Paint (float *mask,
       rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
       rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
 
-
     }
   }
 }
@@ -364,6 +364,7 @@ void draw_dab_pixels_BlendMode_LockAlpha_Paint (float * mask,
         rgba[0] = (opa_a*color_r + opa_b*rgba[0]);
         rgba[1] = (opa_a*color_g + opa_b*rgba[1]);
         rgba[2] = (opa_a*color_b + opa_b*rgba[2]);
+
     }
   }
 }
