@@ -111,12 +111,12 @@ mypaint_fixed_tiled_surface_new(int width, int height)
 
     const int tiles_width = ceil((float)width / tile_size_pixels);
     const int tiles_height = ceil((float)height / tile_size_pixels);
-    const size_t tile_size = tile_size_pixels * tile_size_pixels * 4 * sizeof(MyPaintPixelType);
+    const size_t tile_size = tile_size_pixels * tile_size_pixels * MYPAINT_NUM_CHANS * sizeof(MyPaintPixelType);
     const size_t buffer_size = tiles_width * tiles_height * tile_size;
 
     assert(tile_size_pixels*tiles_width >= width);
     assert(tile_size_pixels*tiles_height >= height);
-    assert(buffer_size >= width*height*4*sizeof(MyPaintPixelType));
+    assert(buffer_size >= width*height*MYPAINT_NUM_CHANS*sizeof(MyPaintPixelType));
 
     MyPaintPixelType * buffer = (MyPaintPixelType *)malloc(buffer_size);
     if (!buffer) {

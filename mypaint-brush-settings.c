@@ -37,6 +37,7 @@
 
 #include "brushsettings-gen.h"
 
+
 const MyPaintBrushSettingInfo *
 mypaint_brush_setting_info(MyPaintBrushSetting id)
 {

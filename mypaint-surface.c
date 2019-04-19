@@ -35,13 +35,14 @@ mypaint_surface_draw_dab(MyPaintSurface *self,
                        float colorize,
                        float posterize,
                        float posterize_num,
-                       float paint
+                       float paint,
+                       float * brushchans
                        )
 {
     assert(self->draw_dab);
     return self->draw_dab(self, x, y, radius, color_r, color_g, color_b,
                    opaque, hardness, alpha_eraser, aspect_ratio, angle,
-                   lock_alpha, colorize, posterize, posterize_num, paint);
+                   lock_alpha, colorize, posterize, posterize_num, paint, brushchans);
 }
 
 
@@ -49,12 +50,12 @@ void
 mypaint_surface_get_color(MyPaintSurface *self,
                         float x, float y,
                         float radius,
-                        float * color_r, float * color_g, float * color_b, float * color_a,
+                        float * color,
                         float paint
                         )
 {
     assert(self->get_color);
-    self->get_color(self, x, y, radius, color_r, color_g, color_b, color_a, paint);
+    self->get_color(self, x, y, radius, *color, paint);
 }
 
 
@@ -98,9 +99,9 @@ mypaint_surface_unref(MyPaintSurface *self)
 
 float mypaint_surface_get_alpha (MyPaintSurface *self, float x, float y, float radius)
 {
-    float color_r, color_g, color_b, color_a;
-    mypaint_surface_get_color (self, x, y, radius, &color_r, &color_g, &color_b, &color_a, 1.0);
-    return color_a;
+    float color[MYPAINT_NUM_CHANS];
+    mypaint_surface_get_color (self, x, y, radius, color, 1.0);
+    return color[MYPAINT_NUM_CHANS-1];
 }
 
 void

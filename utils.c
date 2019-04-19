@@ -21,15 +21,6 @@ fix15_to_rgba8(float *src, uint8_t *dst, int length)
       b = *src;
       a = *src;
 
-      // un-premultiply alpha (with rounding)
-      if (a != 0) {
-        r = ((r << 15) + a/2) / a;
-        g = ((g << 15) + a/2) / a;
-        b = ((b << 15) + a/2) / a;
-      } else {
-        r = g = b = 0;
-      }
-
       // Variant A) rounding
 /*      const uint32_t add_r = (1<<15)/2;*/
 /*      const uint32_t add_g = (1<<15)/2;*/

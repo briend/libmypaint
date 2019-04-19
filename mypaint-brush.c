@@ -55,8 +55,7 @@
 #define ACTUAL_RADIUS_MIN 0.2
 #define ACTUAL_RADIUS_MAX 1000 // safety guard against radius like 1e20 and against rendering overload with unexpected brush dynamics
 
-//array for smudge states, which allow much higher more variety and "memory" of the brush
-float smudge_buckets[256][9] = {{0.0f}};
+
 
 /* The Brush class stores two things:
    b) settings: constant during a stroke (eg. size, spacing, dynamics, color selected by the user)
@@ -93,6 +92,8 @@ struct MyPaintBrush {
     float skip_last_y;
     float skipped_dtime;
     RngDouble * rng;
+    // array for smudge states, which allow much higher more variety and "memory" of the brush
+    float smudge_buckets[256][MYPAINT_NUM_CHANS*2+1];
 
     // Those mappings describe how to calculate the current value for each setting.
     // Most of settings will be constant (eg. only their base_value is used).
@@ -132,8 +133,7 @@ mypaint_brush_new(void)
     MyPaintBrush *self = (MyPaintBrush *)malloc(sizeof(MyPaintBrush));
 
     self->refcount = 1;
-    int i=0;
-    for (i=0; i<MYPAINT_BRUSH_SETTINGS_COUNT; i++) {
+    for (int i=0; i<MYPAINT_BRUSH_SETTINGS_COUNT; i++) {
       self->settings[i] = mypaint_mapping_new(MYPAINT_BRUSH_INPUTS_COUNT);
     }
     self->rng = rng_double_new(1000);
@@ -144,9 +144,20 @@ mypaint_brush_new(void)
     self->skipped_dtime = 0;
     self->print_inputs = FALSE;
 
-    for (i=0; i<MYPAINT_BRUSH_STATES_COUNT; i++) {
+    for (int i=0; i<MYPAINT_BRUSH_STATES_COUNT; i++) {
       self->states[i] = 0;
     }
+    
+    for (int i=0; i<256; i++) {
+      for (int j=0; j<MYPAINT_NUM_CHANS*2+1; j++) {
+          self->smudge_buckets[i][j] = 0.0;
+      }
+    }
+    
+    for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+      brushchans[i] = 0.0;
+    }
+    
     mypaint_brush_new_stroke(self);
 
     settings_base_values_have_changed(self);
@@ -261,6 +272,14 @@ mypaint_brush_set_base_value(MyPaintBrush *self, MyPaintBrushSetting id, float v
     mypaint_mapping_set_base_value(self->settings[id], value);
 
     settings_base_values_have_changed (self);
+}
+
+void
+mypaint_brush_set_brush_chans(MyPaintBrush *self, float *chans)
+{
+    for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+        brushchans[i] = brushchans[i];
+    }
 }
 
 /**
@@ -790,12 +809,14 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
       }
     }
 
-    //convert to RGB here instead of later
     // color part
-    float color_h = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_H]);
-    float color_s = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_S]);
-    float color_v = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_V]);
-    hsv_to_rgb_float (&color_h, &color_s, &color_v);
+
+    float brushcolor[MYPAINT_NUM_CHANS-1];
+    for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+      brushcolor[i] = brushchans[i];
+    }
+    
+    
     // update smudge color
     if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_LENGTH] < 1.0 &&
        // optimization, since normal brushes have smudge_length == 0.5 without actually smudging
@@ -815,157 +836,127 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
       // dab. Because of this we use the previous value if it is not
       // expected to hurt quality too much. We call it at most every
       // second dab.
-      float r, g, b, a;
-
-      smudge_buckets[bucket][8] *= fac;
-      if (smudge_buckets[bucket][8] < (fastpow(0.5*fac, self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_LENGTH_LOG])) + 0.0000000000000001) {
-        if (smudge_buckets[bucket][8] == 0.0) {
+      float smudge_get[MYPAINT_NUM_CHANS] = {0};
+      
+      //smudge recentness
+      self->smudge_buckets[bucket][MYPAINT_NUM_CHANS*2] *= fac;
+      if (self->smudge_buckets[bucket][MYPAINT_NUM_CHANS*2]
+          < (fastpow(0.5*fac, self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_LENGTH_LOG]))
+          + 0.0000000000000001) {
+        if (self->smudge_buckets[bucket][MYPAINT_NUM_CHANS*2] == 0.0) {
           // first initialization of smudge color
           fac = 0.0;
         }
-        smudge_buckets[bucket][8] = 1.0;
+        self->smudge_buckets[bucket][MYPAINT_NUM_CHANS*2] = 1.0;
 
         float smudge_radius = radius * fasterexp(self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_RADIUS_LOG]);
         smudge_radius = CLAMP(smudge_radius, ACTUAL_RADIUS_MIN, ACTUAL_RADIUS_MAX);
 
-        mypaint_surface_get_color(surface, px, py, smudge_radius, &r, &g, &b, &a, self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE]);
+        mypaint_surface_get_color(surface, px, py, smudge_radius, smudge_get, self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE]);
 
         //don't draw unless the picked-up alpha is above a certain level
         //this is sort of like lock_alpha but for smudge
         //negative values reverse this idea
         if ((self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] > 0.0 && 
-             a < self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY]) ||
+             smudge_get[MYPAINT_NUM_CHANS-1] < self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY]) ||
              (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] < 0.0 && 
-             a > self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] * -1)) {
+             smudge_get[MYPAINT_NUM_CHANS-1] > self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_TRANSPARENCY] * -1)) {
           return FALSE;
         }
-        //avoid color noise from low alpha
-        if (a > WGM_EPSILON * 10) { 
-          smudge_buckets[bucket][4] = r;
-          smudge_buckets[bucket][5] = g;
-          smudge_buckets[bucket][6] = b;
-          smudge_buckets[bucket][7] = a;
-        } else {
-          fac = 1.0;
+        for (int i=0; i<MYPAINT_NUM_CHANS; i++){
+          self->smudge_buckets[bucket][MYPAINT_NUM_CHANS+i] = smudge_get[i];
         }
+
+      // if our last sample is too fresh:
+      // yank the last GetColor from the state array instead of sampling
       } else {
-        r = smudge_buckets[bucket][4];
-        g = smudge_buckets[bucket][5];
-        b = smudge_buckets[bucket][6];
-        a = smudge_buckets[bucket][7];
+        for (int i=0; i<MYPAINT_NUM_CHANS; i++) {
+        smudge_get[i] = self->smudge_buckets[bucket][MYPAINT_NUM_CHANS+i];
+        }
       }
       
-      float smudge_state[4] = {smudge_buckets[bucket][0], smudge_buckets[bucket][1], smudge_buckets[bucket][2], smudge_buckets[bucket][3]};
+      // load current smudge state
+      float smudge_state[MYPAINT_NUM_CHANS];
+      for (int i=0; i<MYPAINT_NUM_CHANS; i++) {
+        smudge_state[i] = self->smudge_buckets[bucket][i];
+      }
       
-      float smudge_get[4] = {r, g, b, a};
-
+      // mix the smudge state with the get_color
       float *smudge_new;
       smudge_new = mix_colors(smudge_state,
                               smudge_get,
                               fac,
                               self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE] );
-      // updated the smudge color (stored with straight alpha)
-      smudge_buckets[bucket][0] = smudge_new[0];
-      smudge_buckets[bucket][1] = smudge_new[1];
-      smudge_buckets[bucket][2] = smudge_new[2];
-      smudge_buckets[bucket][3] = smudge_new[3];
+      // updated the smudge color (stored with premultiplied alpha)
       
-      //update all the states
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] = smudge_buckets[bucket][0];
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] = smudge_buckets[bucket][1];
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] = smudge_buckets[bucket][2];
-      self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] = smudge_buckets[bucket][3];
-      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_R] = smudge_buckets[bucket][4];
-      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_G] = smudge_buckets[bucket][5];
-      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_B] = smudge_buckets[bucket][6];
-      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_A] = smudge_buckets[bucket][7];
-      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_RECENTNESS] = smudge_buckets[bucket][8];
-    }
+      for (int i=0; i<MYPAINT_NUM_CHANS; i++) {
+        self->smudge_buckets[bucket][i] = smudge_new[i];
+      }
 
-    float color_h = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_H]);
-    float color_s = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_S]);
-    float color_v = mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_COLOR_V]);
-    //printf("mypaint-brush 847 brush color starts out as %f, %f, %f\n", color_h, color_s, color_v);
+      //update all the states.  or not...
+/*      self->states[MYPAINT_BRUSH_STATE_SMUDGE_RA] = smudge_buckets[bucket][0];*/
+/*      self->states[MYPAINT_BRUSH_STATE_SMUDGE_GA] = smudge_buckets[bucket][1];*/
+/*      self->states[MYPAINT_BRUSH_STATE_SMUDGE_BA] = smudge_buckets[bucket][2];*/
+/*      self->states[MYPAINT_BRUSH_STATE_SMUDGE_A] = smudge_buckets[bucket][3];*/
+/*      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_R] = smudge_buckets[bucket][4];*/
+/*      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_G] = smudge_buckets[bucket][5];*/
+/*      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_B] = smudge_buckets[bucket][6];*/
+/*      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_A] = smudge_buckets[bucket][7];*/
+/*      self->states[MYPAINT_BRUSH_STATE_LAST_GETCOLOR_RECENTNESS] = smudge_buckets[bucket][8];*/
+    }
 
     float eraser_target_alpha = 1.0;
 
     if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE] > 0.0) {
       float fac = self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE];
-      //hsv_to_rgb_float (&color_h, &color_s, &color_v);
 
-      //determine which smudge bucket to use when mixing with brush color
+      //determine which smudge bucket (state) to use when mixing with brush color
       int bucket = CLAMP(roundf(self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE_BUCKET]), 0, 255);
             
       if (fac > 1.0) fac = 1.0;
         // If the smudge color somewhat transparent, then the resulting
         // dab will do erasing towards that transparency level.
         // see also ../doc/smudge_math.png
-        eraser_target_alpha = (1-fac)*1.0 + fac*smudge_buckets[bucket][3];
+        eraser_target_alpha = (1.-fac)*1.0 + fac*self->smudge_buckets[bucket][MYPAINT_NUM_CHANS-1];
         // fix rounding errors (they really seem to happen in the previous line)
         eraser_target_alpha = CLAMP(eraser_target_alpha, 0.0, 1.0);
-        if (eraser_target_alpha > 0) {
+        if (eraser_target_alpha > 0.) {
           
-          float smudge_state[4] = {
-            smudge_buckets[bucket][0],
-            smudge_buckets[bucket][1],
-            smudge_buckets[bucket][2], 
-            smudge_buckets[bucket][3]
+          float smudge_state[MYPAINT_NUM_CHANS];
+          for (int i=0; i<MYPAINT_NUM_CHANS; i++)
+          {
+            smudge_state[i] = self->smudge_buckets[bucket][i];
           };
-          float brush_color[4] = {color_h, color_s, color_v, 1.0};
-          float *color_new;
           
+          float brushcolor_temp[MYPAINT_NUM_CHANS];
+          for (int i=0; i<MYPAINT_NUM_CHANS-1; i++){
+              brushcolor_temp[i] = brushchans[i];
+          }
+          brushcolor_temp[MYPAINT_NUM_CHANS-1] = 1.0;
+          
+          float *color_new;          
           color_new = mix_colors(
             smudge_state,
-            brush_color,
+            brushcolor_temp,
             fac,
             self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE]
-          );  
+          );
           
-          color_h = color_new[0];// / eraser_target_alpha;
-          color_s = color_new[1];// / eraser_target_alpha;
-          color_v = color_new[2];// / eraser_target_alpha;
-
-        } else {
-          // we are only erasing; the color does not matter
-          color_h = 1.0;
-          color_s = 1.0;
-          color_v = 1.0;
+          for (int i=0; i<MYPAINT_NUM_CHANS-1; i++){
+            brushcolor[i] =  color_new[i] / eraser_target_alpha;
+          }
         }
-
-      //rgb_to_hsv_float (&color_h, &color_s, &color_v);
+        
     }
 
     // eraser
     if (self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]) {
       eraser_target_alpha *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
-      color_h *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
-      color_s *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
-      color_v *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
+      for (int i=0; i<MYPAINT_NUM_CHANS-1; i++){
+        brushcolor[i] *=  (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
+      }  
     }
 
-    // HSV color change
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_H] || 
-        self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSV_S] ||
-        self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_V]) {
-      rgb_to_hsv_float (&color_h, &color_s, &color_v);
-      color_h += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_H];
-      color_s += color_s * color_v * self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSV_S];
-      color_v += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_V];
-      hsv_to_rgb_float (&color_h, &color_s, &color_v);
-    }
-
-    // HSL color change
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_L] || self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSL_S]) {
-      // (calculating way too much here, can be optimized if necessary)
-      // this function will CLAMP the inputs
-      //hsv_to_rgb_float (&color_h, &color_s, &color_v);
-      rgb_to_hsl_float (&color_h, &color_s, &color_v);
-      color_v += self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_L];
-      color_s += color_s * MIN(fabsf(1.0 - color_v), fabsf(color_v)) * 2.0
-        * self->settings_value[MYPAINT_BRUSH_SETTING_CHANGE_COLOR_HSL_S];
-      hsl_to_rgb_float (&color_h, &color_s, &color_v);
-      //rgb_to_hsv_float (&color_h, &color_s, &color_v);
-    }
 
     float hardness = CLAMP(self->settings_value[MYPAINT_BRUSH_SETTING_HARDNESS], 0.0, 1.0);
 
@@ -1013,13 +1004,11 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
 
       radius = radius + (snapped_radius - radius) * snapToPixel;
     }
-    //printf("mypaint-brush 952 about to dab color is %f, %f, %f, %f, %f\n", color_h, color_s, color_v, opaque, eraser_target_alpha);
-    // the functions below will CLAMP most inputs
-    //hsv_to_rgb_float (&color_h, &color_s, &color_v);
-    return mypaint_surface_draw_dab (surface, x, y, radius, color_h, color_s, color_v, opaque, hardness, eraser_target_alpha,
+
+    return mypaint_surface_draw_dab (surface, x, y, radius, 1., 1., 1., opaque, hardness, eraser_target_alpha,
                               self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_RATIO], self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_ANGLE],
                               self->settings_value[MYPAINT_BRUSH_SETTING_LOCK_ALPHA],
-                              self->settings_value[MYPAINT_BRUSH_SETTING_COLORIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE_NUM], self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE]);
+                              self->settings_value[MYPAINT_BRUSH_SETTING_COLORIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE_NUM], self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE], brushcolor);
   }
 
   // How many dabs will be drawn between the current and the next (x, y, pressure, +dt) position?

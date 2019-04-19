@@ -26,8 +26,13 @@ G_BEGIN_DECLS
 
 typedef struct MyPaintBrush MyPaintBrush;
 
+float brushchans[MYPAINT_NUM_CHANS-1];
+
 MyPaintBrush *
 mypaint_brush_new(void);
+
+void
+mypaint_brush_set_brush_chans(MyPaintBrush *self, float *chans);
 
 void
 mypaint_brush_unref(MyPaintBrush *self);
@@ -42,7 +47,8 @@ mypaint_brush_new_stroke(MyPaintBrush *self);
 
 int
 mypaint_brush_stroke_to(MyPaintBrush *self, MyPaintSurface *surface, float x, float y,
-                        float pressure, float xtilt, float ytilt, double dtime, float viewzoom, float viewrotation, float barrel_rotation);
+                        float pressure, float xtilt, float ytilt, double dtime,
+                        float viewzoom, float viewrotation, float barrel_rotation);
 
 void
 mypaint_brush_set_base_value(MyPaintBrush *self, MyPaintBrushSetting id, float value);

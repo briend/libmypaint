@@ -509,6 +509,15 @@
         {
             "constant": true,
             "default": 0.0,
+            "displayed_name": "Brush Color",
+            "internal_name": "brush_color",
+            "maximum": 1.5,
+            "minimum": -0.5,
+            "tooltip": "array of N color channels for brush"
+        },
+        {
+            "constant": true,
+            "default": 0.0,
             "displayed_name": "Save color",
             "internal_name": "restore_color",
             "maximum": 1.0,

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "tilemap.h"
+#include "mypaint-config.h"
 
 typedef struct {
     float x;
@@ -12,6 +13,7 @@ typedef struct {
     float color_g;
     float color_b;
     float color_a;
+    float brushcolor[MYPAINT_NUM_CHANS-1];
     float opaque;
     float hardness;
     float aspect_ratio;
