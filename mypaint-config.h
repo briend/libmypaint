@@ -6,11 +6,11 @@
 #endif
 
 #ifndef MYPAINT_NUM_CHANS
-#define MYPAINT_NUM_CHANS 8
+#define MYPAINT_NUM_CHANS 11
 #endif
 
 #ifndef MYPAINT_MAX_THREADS
-#define MYPAINT_MAX_THREADS 16
+#define MYPAINT_MAX_THREADS 32
 #endif
 
 #ifndef MYPAINT_MAX_MIPMAP_LEVEL

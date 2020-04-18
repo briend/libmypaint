@@ -11,6 +11,7 @@ ensure_max_threads_not_exceeded(void)
 {
 #ifdef _OPENMP
     const int max_threads = omp_get_max_threads();
+    printf("max threads: %i", max_threads);
     if (max_threads > MYPAINT_MAX_THREADS) {
         omp_set_num_threads(MYPAINT_MAX_THREADS);
     }
