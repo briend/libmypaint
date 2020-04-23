@@ -44,7 +44,8 @@ typedef int (*MyPaintSurfaceDrawDabFunction) (MyPaintSurface *self,
                        float posterize,
                        float posterize_num,
                        float paint,
-                       float * brushcolor);
+                       float * brushcolor,
+                       float volume);
 
 typedef void (*MyPaintSurfaceDestroyFunction) (MyPaintSurface *self);
 
@@ -88,7 +89,8 @@ mypaint_surface_draw_dab(MyPaintSurface *self,
                        float posterize,
                        float posterize_num,
                        float paint,
-                       float * brushcolor
+                       float * brushcolor,
+                       float volume
                        );
 
 

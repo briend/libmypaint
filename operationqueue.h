@@ -13,7 +13,7 @@ typedef struct {
     float color_g;
     float color_b;
     float color_a;
-    float brushcolor[MYPAINT_NUM_CHANS-1];
+    float brushcolor[MYPAINT_NUM_CHANS];
     float opaque;
     float hardness;
     float aspect_ratio;
@@ -24,6 +24,7 @@ typedef struct {
     float posterize;
     float posterize_num;
     float paint;
+    float volume;
 } OperationDataDrawDab;
 
 typedef struct OperationQueue OperationQueue;

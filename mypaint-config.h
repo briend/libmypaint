@@ -6,7 +6,7 @@
 #endif
 
 #ifndef MYPAINT_NUM_CHANS
-#define MYPAINT_NUM_CHANS 11
+#define MYPAINT_NUM_CHANS 12
 #endif
 
 #ifndef MYPAINT_MAX_THREADS

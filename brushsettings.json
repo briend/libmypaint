@@ -193,6 +193,15 @@
         },
         {
             "constant": false,
+            "default": 1.0,
+            "displayed_name": "Volume",
+            "internal_name": "volume",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "tooltip": "Volume channel builds up as a 3D effect. Reduce with stroke to mimic run off"
+        },
+        {
+            "constant": false,
             "default": 0.0,
             "displayed_name": "Opacity multiply",
             "internal_name": "opaque_multiply",
@@ -505,15 +514,6 @@
             "maximum": 1.5,
             "minimum": -0.5,
             "tooltip": "Color value (brightness, intensity)"
-        },
-        {
-            "constant": true,
-            "default": 0.0,
-            "displayed_name": "Brush Color",
-            "internal_name": "brush_color",
-            "maximum": 1.5,
-            "minimum": -0.5,
-            "tooltip": "array of N color channels for brush"
         },
         {
             "constant": true,

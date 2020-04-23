@@ -277,7 +277,7 @@ mypaint_brush_set_base_value(MyPaintBrush *self, MyPaintBrushSetting id, float v
 void
 mypaint_brush_set_brush_chans(MyPaintBrush *self, float *chans)
 {
-    for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+    for (int i=0; i<MYPAINT_NUM_CHANS-2; i++) {
         brushchans[i] = brushchans[i];
     }
 }
@@ -684,13 +684,14 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
   // Returns TRUE if the surface was modified.
   gboolean prepare_and_draw_dab (MyPaintBrush *self, MyPaintSurface * surface)
   {
-    float x, y, opaque;
+    float x, y, opaque, volume;
     float radius;
 
     // ensure we don't get a positive result with two negative opaque values
     if (self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE] < 0) self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE] = 0;
     opaque = self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE] * self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE_MULTIPLY];
     opaque = CLAMP(opaque, 0.0, 1.0);
+    volume = MAX(0.0, self->settings_value[MYPAINT_BRUSH_SETTING_VOLUME]);
     //if (opaque == 0.0) return FALSE; <-- cannot do that, since we need to update smudge state.
     if (self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE_LINEARIZE]) {
       // OPTIMIZE: no need to recalculate this for each dab
@@ -811,10 +812,12 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
 
     // color part
 
-    float brushcolor[MYPAINT_NUM_CHANS-1];
-    for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+    float brushcolor[MYPAINT_NUM_CHANS] = {0.0};
+    for (int i=0; i<MYPAINT_NUM_CHANS-2; i++) {
       brushcolor[i] = brushchans[i];
     }
+    brushcolor[MYPAINT_NUM_CHANS-2] = volume;
+    brushcolor[MYPAINT_NUM_CHANS-1] = 1.0;
     
     
     // update smudge color
@@ -836,7 +839,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
       // dab. Because of this we use the previous value if it is not
       // expected to hurt quality too much. We call it at most every
       // second dab.
-      float smudge_get[MYPAINT_NUM_CHANS] = {0};
+      float smudge_get[MYPAINT_NUM_CHANS] = {0.0};
       
       //smudge recentness
       self->smudge_buckets[bucket][MYPAINT_NUM_CHANS*2] *= fac;
@@ -906,6 +909,7 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
     }
 
     float eraser_target_alpha = 1.0;
+    //float eraser_target_volume = volume;
 
     if (self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE] > 0.0) {
       float fac = self->settings_value[MYPAINT_BRUSH_SETTING_SMUDGE];
@@ -918,42 +922,49 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
         // dab will do erasing towards that transparency level.
         // see also ../doc/smudge_math.png
         eraser_target_alpha = (1.-fac)*1.0 + fac*self->smudge_buckets[bucket][MYPAINT_NUM_CHANS-1];
+        
+        //eraser_target_volume = (1.-fac)*1.0 + fac*self->smudge_buckets[bucket][MYPAINT_NUM_CHANS-2];
         // fix rounding errors (they really seem to happen in the previous line)
         eraser_target_alpha = CLAMP(eraser_target_alpha, 0.0, 1.0);
         if (eraser_target_alpha > 0.) {
           
-          float smudge_state[MYPAINT_NUM_CHANS];
+          float smudge_state[MYPAINT_NUM_CHANS] = {0.0};
           for (int i=0; i<MYPAINT_NUM_CHANS; i++)
           {
             smudge_state[i] = self->smudge_buckets[bucket][i];
           };
           
-          float brushcolor_temp[MYPAINT_NUM_CHANS];
-          for (int i=0; i<MYPAINT_NUM_CHANS-1; i++){
-              brushcolor_temp[i] = brushchans[i];
-          }
-          brushcolor_temp[MYPAINT_NUM_CHANS-1] = 1.0;
+/*          float brushcolor_temp[MYPAINT_NUM_CHANS];*/
+/*          for (int i=0; i<MYPAINT_NUM_CHANS-2; i++){*/
+/*              brushcolor_temp[i] = brushchans[i];*/
+/*          }*/
+/*          brushcolor_temp[MYPAINT_NUM_CHANS-2] = volume;*/
+/*          brushcolor_temp[MYPAINT_NUM_CHANS-1] = 1.0;*/
           
           float *color_new;          
           color_new = mix_colors(
             smudge_state,
-            brushcolor_temp,
+            brushcolor,
             fac,
             self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE]
           );
           
-          for (int i=0; i<MYPAINT_NUM_CHANS-1; i++){
+          for (int i=0; i<MYPAINT_NUM_CHANS-2; i++){
             brushcolor[i] =  color_new[i] / eraser_target_alpha;
           }
+          brushcolor[MYPAINT_NUM_CHANS-2] = color_new[MYPAINT_NUM_CHANS-2]; //volume
+          //volume = eraser_target_volume;
         }
         
     }
 
+    //brushcolor[MYPAINT_NUM_CHANS-2] = eraser_target_volume;
     // eraser
     if (self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]) {
       eraser_target_alpha *= (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
       for (int i=0; i<MYPAINT_NUM_CHANS-1; i++){
         brushcolor[i] *=  (1.0-self->settings_value[MYPAINT_BRUSH_SETTING_ERASER]);
+        
       }  
     }
 
@@ -1004,11 +1015,11 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
 
       radius = radius + (snapped_radius - radius) * snapToPixel;
     }
-
+    //printf("vol is %f\n", brushcolor[MYPAINT_NUM_CHANS-2]);
     return mypaint_surface_draw_dab (surface, x, y, radius, 1., 1., 1., opaque, hardness, eraser_target_alpha,
                               self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_RATIO], self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_ANGLE],
                               self->settings_value[MYPAINT_BRUSH_SETTING_LOCK_ALPHA],
-                              self->settings_value[MYPAINT_BRUSH_SETTING_COLORIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE_NUM], self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE], brushcolor);
+                              self->settings_value[MYPAINT_BRUSH_SETTING_COLORIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE], self->settings_value[MYPAINT_BRUSH_SETTING_POSTERIZE_NUM], self->settings_value[MYPAINT_BRUSH_SETTING_PAINT_MODE], brushcolor, volume);
   }
 
   // How many dabs will be drawn between the current and the next (x, y, pressure, +dt) position?

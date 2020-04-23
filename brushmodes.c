@@ -49,7 +49,8 @@
 void draw_dab_pixels_BlendMode_Normal (float *mask,
                                        float *rgba_buffer, DabBounds *b,
                                        float *brushcolor,
-                                       float opacity) {
+                                       float opacity,
+                                       float volume) {
 
     for (int yp = b->y0; yp <= b->y1; yp++) {
       for (int xp = b->x0; xp <= b->x1; xp++) {
@@ -58,10 +59,12 @@ void draw_dab_pixels_BlendMode_Normal (float *mask,
           float *rgba = rgba_buffer + (offset*MYPAINT_NUM_CHANS);
           float opa_a = mask[offset]*opacity; // topAlpha
           float opa_b = 1.0-opa_a; // bottomAlpha
-          for (int i=0; i < a_chan; i++) {
+          for (int i=0; i < a_chan-1; i++) {
             rgba[i] = opa_a * brushcolor[i] + opa_b*rgba[i];
           }
-          rgba[a_chan] = opa_a + opa_b * rgba[a_chan];
+          //rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1]; //volume
+          rgba[a_chan] = opa_a + opa_b * rgba[a_chan]; // alpha
+          //printf("brushmode norm %f %f \n", rgba[a_chan-1], volume);
 
       }
     }
@@ -70,7 +73,8 @@ void draw_dab_pixels_BlendMode_Normal (float *mask,
 void draw_dab_pixels_BlendMode_Normal_Paint (float *mask,
                                        float *rgba_buffer, DabBounds *b,
                                        float *brushcolor,
-                                       float opacity) {
+                                       float opacity,
+                                       float volume) {
 
     for (int yp = b->y0; yp <= b->y1; yp++) {
       for (int xp = b->x0; xp <= b->x1; xp++) {
@@ -82,7 +86,10 @@ void draw_dab_pixels_BlendMode_Normal_Paint (float *mask,
           for (int i=0; i < a_chan; i++) {
             rgba[i] = opa_a * brushcolor[i] + opa_b*rgba[i];
           }
+          //rgba[a_chan-1] = MAX((mask[offset] * volume) + brushcolor[a_chan-1] + rgba[a_chan-1], 0.0);
           rgba[a_chan] = opa_a + opa_b * rgba[a_chan];
+          rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1];
+          //printf("paint brushmode norm %f %f \n", rgba[a_chan-1], volume);
 
       }
     }
@@ -107,7 +114,7 @@ void draw_dab_pixels_BlendMode_Posterize (float *mask,
           float *rgba = rgba_buffer + (offset*MYPAINT_NUM_CHANS);
           float opa_a = mask[offset]*opacity; // topAlpha
           float opa_b = 1.0-opa_a; // bottomAlpha
-          for (int i=0; i < a_chan; i++) {
+          for (int i=0; i < a_chan-1; i++) {
             float c = (float)rgba[i] * (1<<15);
             uint32_t post_c = (1<<15) * ROUND(c * posterize_num) / posterize_num;
             rgba[i] = ((float)opa_a*post_c + (float)opa_b*rgba[i])/(1<<30);
@@ -256,7 +263,8 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser (float *mask,
                                                   DabBounds *b,
                                                   float *brushcolor,
                                                   float color_a,
-                                                  float opacity) {
+                                                  float opacity,
+                                                  float volume) {
 
   //printf("brusmodes 227 colors are %f, %f, %f, %f, %f\n", color_r, color_g, color_b, opacity, color_a);
   for (int yp = b->y0; yp <= b->y1; yp++) {
@@ -269,7 +277,7 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser (float *mask,
       float opa_b = 1.0-opa_a; // bottomAlpha
       opa_a = opa_a * color_a;
       rgba[a_chan] = opa_a + opa_b * rgba[a_chan];
-      for (int i=0; i<a_chan; i++){
+      for (int i=0; i<a_chan-1; i++){
         rgba[i] = (opa_a*brushcolor[i] + opa_b*rgba[i]);
       }
     }
@@ -281,7 +289,8 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser_Paint (float *mask,
                                                   DabBounds *b,
                                                   float *brushcolor,
                                                   float color_a,
-                                                  float opacity) {
+                                                  float opacity,
+                                                  float volume) {
 
   for (int yp = b->y0; yp <= b->y1; yp++) {
     for (int xp = b->x0; xp <= b->x1; xp++) {
@@ -293,9 +302,14 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser_Paint (float *mask,
       float opa_b = 1.0-opa_a; // bottomAlpha
       opa_a = opa_a * color_a;
       rgba[a_chan] = opa_a + opa_b * rgba[a_chan];
+      //rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1];
+      
       for (int i=0; i<a_chan; i++){
         rgba[i] = (opa_a*brushcolor[i] + opa_b*rgba[i]);
       }
+      //printf("bm bv is %f, canvas is %f \n", brushcolor[a_chan-1], rgba[a_chan-1]);
+      rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1];
+      
     }
   }
 }
@@ -306,7 +320,8 @@ void draw_dab_pixels_BlendMode_LockAlpha (float * mask,
                                           float * rgba_buffer,
                                           DabBounds *b,
                                           float *brushcolor,
-                                          float opacity) {
+                                          float opacity,
+                                          float volume) {
 
   for (int yp = b->y0; yp <= b->y1; yp++) {
     for (int xp = b->x0; xp <= b->x1; xp++) {
@@ -318,7 +333,7 @@ void draw_dab_pixels_BlendMode_LockAlpha (float * mask,
         float opa_b = 1.0-opa_a; // bottomAlpha
         
         opa_a *= rgba[a_chan];
-        for (int i=0; i<a_chan; i++){    
+        for (int i=0; i<a_chan-1; i++){    
           rgba[i] = (opa_a*brushcolor[i] + opa_b*rgba[i]);
         }
 
@@ -330,7 +345,8 @@ void draw_dab_pixels_BlendMode_LockAlpha_Paint (float * mask,
                                           float * rgba_buffer,
                                           DabBounds *b,
                                           float *brushcolor,
-                                          float opacity) {
+                                          float opacity,
+                                          float volume) {
 
   for (int yp = b->y0; yp <= b->y1; yp++) {
     for (int xp = b->x0; xp <= b->x1; xp++) {
@@ -342,7 +358,7 @@ void draw_dab_pixels_BlendMode_LockAlpha_Paint (float * mask,
         float opa_b = 1.0-opa_a; // bottomAlpha
         
         opa_a *= rgba[a_chan];
-        for (int i=0; i<a_chan; i++){    
+        for (int i=0; i<a_chan-1; i++){    
           rgba[i] = (opa_a*brushcolor[i] + opa_b*rgba[i]);
         }
 
@@ -371,6 +387,7 @@ void get_color_pixels_accumulate (float *mask,
       for (int i=0; i<MYPAINT_NUM_CHANS; i++){
         sum_color[i] += opa*rgba[i];
       }
+      //printf("get vol is %f \n", rgba[MYPAINT_NUM_CHANS-2]);
     }
   }
 }

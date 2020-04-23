@@ -451,19 +451,19 @@ process_op(float *rgba_p, float *mask,
         if (op->color_a == 1.0) {
           draw_dab_pixels_BlendMode_Normal(mask, rgba_p, &bb,
                                          op->brushcolor,
-                                         op->normal*op->opaque*(1. - op->paint));
+                                         op->normal*op->opaque*(1. - op->paint), op->volume);
         } else {
           // normal case for brushes that use smudging (eg. watercolor)
           draw_dab_pixels_BlendMode_Normal_and_Eraser(mask, rgba_p, &bb,
                                                     op->brushcolor,
-                                                    op->color_a, op->normal*op->opaque*(1. - op->paint));
+                                                    op->color_a, op->normal*op->opaque*(1. - op->paint), op->volume);
         }
       }
 
       if (op->lock_alpha) {
         draw_dab_pixels_BlendMode_LockAlpha(mask, rgba_p, &bb,
                                          op->brushcolor,
-                                         op->lock_alpha*op->opaque*(1. - op->colorize)*(1. - op->posterize)*(1. - op->paint));
+                                         op->lock_alpha*op->opaque*(1. - op->colorize)*(1. - op->posterize)*(1. - op->paint), op->volume);
       }
     }
     if (op->paint > 0.0) {
@@ -471,19 +471,19 @@ process_op(float *rgba_p, float *mask,
         if (op->color_a == 1.0) {
           draw_dab_pixels_BlendMode_Normal_Paint(mask, rgba_p, &bb,
                                          op->brushcolor,
-                                         op->normal*op->opaque*op->paint);
+                                         op->normal*op->opaque*op->paint, op->volume);
         } else {
           // normal case for brushes that use smudging (eg. watercolor)
           draw_dab_pixels_BlendMode_Normal_and_Eraser_Paint(mask, rgba_p, &bb,
                                                     op->brushcolor,
-                                                    op->color_a, op->normal*op->opaque*op->paint);
+                                                    op->color_a, op->normal*op->opaque*op->paint, op->volume);
         }
       }
 
       if (op->lock_alpha) {
         draw_dab_pixels_BlendMode_LockAlpha_Paint(mask, rgba_p, &bb,
                                           op->brushcolor,
-                                          op->lock_alpha*op->opaque*(1. - op->colorize)*(1. - op->posterize)*op->paint);
+                                          op->lock_alpha*op->opaque*(1. - op->colorize)*(1. - op->posterize)*op->paint, op->volume);
       }
     }
     
@@ -561,7 +561,8 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
                float posterize,
                float posterize_num,
                float paint,
-               float * brushcolor
+               float * brushcolor,
+               float volume
                )
 
 {
@@ -583,9 +584,10 @@ gboolean draw_dab_internal (MyPaintTiledSurface *self, float x, float y,
     if (op->radius < 0.1f) return FALSE; // don't bother with dabs smaller than 0.1 pixel
     if (op->hardness == 0.0f) return FALSE; // infintly small center point, fully transparent outside
     if (op->opaque == 0.0f) return FALSE;
-    for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+    for (int i=0; i<MYPAINT_NUM_CHANS; i++) {
       op->brushcolor[i] = brushcolor[i];
     }
+    op->volume = volume;
     
 
 /*    color_r = CLAMP(color_r, 0.0f, 1.0f);*/
@@ -643,7 +645,8 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
                float posterize,
                float posterize_num,
                float paint,
-               float * brushcolor)
+               float * brushcolor,
+               float volume)
 {
   MyPaintTiledSurface *self = (MyPaintTiledSurface *)surface;
 
@@ -652,7 +655,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
   // Normal pass
   if (draw_dab_internal(self, x, y, radius, color_r, color_g, color_b,
                         opaque, hardness, color_a, aspect_ratio, angle,
-                        lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                        lock_alpha, colorize, posterize, posterize_num, paint, brushcolor, volume)) {
       surface_modified = TRUE;
   }
 
@@ -674,7 +677,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
           case MYPAINT_SYMMETRY_TYPE_VERTICAL:
             if (draw_dab_internal(self, symm_x, y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, -angle,
-                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor, volume)) {
                 surface_modified = TRUE;
             }
             break;
@@ -682,7 +685,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
           case MYPAINT_SYMMETRY_TYPE_HORIZONTAL:
             if (draw_dab_internal(self, x, symm_y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, angle + 180.0,
-                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor, volume)) {
                 surface_modified = TRUE;
             }
             break;
@@ -691,19 +694,19 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
             // reflect vertically
             if (draw_dab_internal(self, symm_x, y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, -angle,
-                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor, volume)) {
                 dab_count++;
             }
             // reflect horizontally
             if (draw_dab_internal(self, x, symm_y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, angle + 180.0,
-                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor, volume)) {
                 dab_count++;
             }
             // reflect horizontally and vertically
             if (draw_dab_internal(self, symm_x, symm_y, radius, color_r, color_g, color_b,
                                    opaque, hardness, color_a, aspect_ratio, -angle - 180.0,
-                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                                   lock_alpha, colorize, posterize, posterize_num, paint, brushcolor, volume)) {
                 dab_count++;
             }
             if (dab_count == 4) {
@@ -731,7 +734,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
                     if (!draw_dab_internal(self, rot_x, rot_y, radius, color_r, color_g, color_b,
                                            opaque, hardness, color_a,
                                            aspect_ratio, -angle + symmetry_angle_offset,
-                                           lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                                           lock_alpha, colorize, posterize, posterize_num, paint, draw_dab_internal, volume)) {
                         failed_subdabs = TRUE;
                         break;
                     }
@@ -762,7 +765,7 @@ int draw_dab (MyPaintSurface *surface, float x, float y,
                     if (!draw_dab_internal(self, rot_x, rot_y, radius, color_r, color_g, color_b,
                                            opaque, hardness, color_a, aspect_ratio,
                                            angle + symmetry_angle_offset,
-                                           lock_alpha, colorize, posterize, posterize_num, paint, brushcolor)) {
+                                           lock_alpha, colorize, posterize, posterize_num, paint, brushcolor, volume)) {
                         break;
                     }
                 }
@@ -863,11 +866,11 @@ void get_color (MyPaintSurface *surface, float x, float y,
     }
     
     if (sum_color[MYPAINT_NUM_CHANS-1] > 0.0) {
-      for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+      for (int i=0; i<MYPAINT_NUM_CHANS-2; i++) {
           sum_color[i] = sum_color[i] / sum_color[MYPAINT_NUM_CHANS-1];
           }
     } else {
-      for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {
+      for (int i=0; i<MYPAINT_NUM_CHANS; i++) {
           sum_color[i] = 0.0f;
           }
     }

@@ -341,11 +341,12 @@ hsl_to_rgb_float (float *h_, float *s_, float *l_)
 //a is the current smudge state, b is the get_color or brush color
 float * mix_colors(float *a, float *b, float fac, float paint_mode)
 {
-  static float result[MYPAINT_NUM_CHANS] = {0};
+  static float result[MYPAINT_NUM_CHANS] = {0.0};
   const int ac = MYPAINT_NUM_CHANS-1;
-  for (int i=0; i<ac; i++){
+  for (int i=0; i<ac-1; i++){
     result[i] = a[i] * fac + (1.0-fac) * b[i] * b[ac];
   }
+  result[ac-1] = a[ac-1] * fac + (1.0-fac) * b[ac-1]; //volume
   result[ac] = a[ac] * fac + (1.0-fac) * b[ac];
 
   return result;

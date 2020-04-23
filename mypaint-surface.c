@@ -36,13 +36,14 @@ mypaint_surface_draw_dab(MyPaintSurface *self,
                        float posterize,
                        float posterize_num,
                        float paint,
-                       float * brushchans
+                       float * brushchans,
+                       float volume
                        )
 {
     assert(self->draw_dab);
     return self->draw_dab(self, x, y, radius, color_r, color_g, color_b,
                    opaque, hardness, alpha_eraser, aspect_ratio, angle,
-                   lock_alpha, colorize, posterize, posterize_num, paint, brushchans);
+                   lock_alpha, colorize, posterize, posterize_num, paint, brushchans, volume);
 }
 
 

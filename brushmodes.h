@@ -12,7 +12,8 @@ void draw_dab_pixels_BlendMode_Normal (float * mask,
                                        float * rgba_buffer,
                                        DabBounds * b,
                                        float * brushcolor,
-                                       float opacity);
+                                       float opacity,
+                                       float volume);
 void
 draw_dab_pixels_BlendMode_Color (float * mask,
                                  float * rgba_buffer, // b=bottom, premult
@@ -27,20 +28,23 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser (float * mask,
                                                   DabBounds *b,
                                                   float * brushcolor,
                                                   float color_a,
-                                                  float opacity);
+                                                  float opacity,
+                                       float volume);
 
 void draw_dab_pixels_BlendMode_LockAlpha (float *mask,
                                           float *rgba,
                                           DabBounds *b,
                                           float * brushcolor,
-                                          float opacity);
+                                          float opacity,
+                                       float volume);
 
 
 void draw_dab_pixels_BlendMode_Normal_Paint (float * mask,
                                        float * rgba,
                                        DabBounds *b,
                                        float * brushcolor,
-                                       float opacity);
+                                       float opacity,
+                                       float volume);
 void
 draw_dab_pixels_BlendMode_Color (float * mask,
                                  float * rgba,
@@ -63,13 +67,15 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser_Paint (float * mask,
                                                   DabBounds *b,
                                                   float * brushcolor,
                                                   float color_a,
-                                                  float opacity);
+                                                  float opacity,
+                                                  float volume);
 
 void draw_dab_pixels_BlendMode_LockAlpha_Paint (float *mask,
                                                 float *rgba,
                                                 DabBounds *b,
                                                 float * brushcolor,
-                                                float opacity);
+                                                float opacity,
+                                                float volume);
 
 void get_color_pixels_accumulate (float * mask,
                                   float * rgba,
