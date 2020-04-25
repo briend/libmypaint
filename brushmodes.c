@@ -83,7 +83,7 @@ void draw_dab_pixels_BlendMode_Normal_Paint (float *mask,
           float *rgba = rgba_buffer + (offset*MYPAINT_NUM_CHANS);
           float opa_a = mask[offset]*opacity; // topAlpha
           float opa_b = 1.0-opa_a; // bottomAlpha
-          for (int i=0; i < a_chan; i++) {
+          for (int i=0; i < a_chan-1; i++) {
             rgba[i] = opa_a * brushcolor[i] + opa_b*rgba[i];
           }
           //rgba[a_chan-1] = MAX((mask[offset] * volume) + brushcolor[a_chan-1] + rgba[a_chan-1], 0.0);
