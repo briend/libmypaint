@@ -52,6 +52,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#define RADIANS(x) ((x) * M_PI / 180.0)
+
 #define ACTUAL_RADIUS_MIN 0.2
 #define ACTUAL_RADIUS_MAX 1000 // safety guard against radius like 1e20 and against rendering overload with unexpected brush dynamics
 
@@ -447,6 +449,92 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
     }
   }
 
+typedef struct {
+  float x;
+  float y;
+} Offsets;
+
+Offsets directional_offsets(MyPaintBrush *self, float base_radius) {
+    const float offset_mult = expf(self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_MULTIPLIER]);
+    // Sanity check - it is easy to reach infinite multipliers w. logarithmic parameters
+    if (!isfinite(offset_mult)) {
+        Offsets offs = {0.0f, 0.0f};
+        return offs;
+    }
+
+    float dx = self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_X];
+    float dy = self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_Y];
+
+    //Anti_Art offsets tweaked by BrienD.  Adjusted with ANGLE_ADJ and OFFSET_MULTIPLIER
+    const float offset_angle_adj = self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ];
+    const float dir_angle_dy = self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DY];
+    const float dir_angle_dx = self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DX];
+    const float angle_deg = fmodf(atan2f(dir_angle_dy, dir_angle_dx) / (2 * M_PI) * 360 - 90, 360);
+
+    //offset to one side of direction
+    const float offset_angle = self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE];
+    if (offset_angle) {
+        const float dir_angle = RADIANS(angle_deg + offset_angle_adj);
+        dx += cos(dir_angle) * offset_angle;
+        dy += sin(dir_angle) * offset_angle;
+    }
+
+    //offset to one side of ascension angle
+    const float view_rotation = self->states[MYPAINT_BRUSH_STATE_VIEWROTATION];
+    const float offset_angle_asc = self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ASC];
+    if (offset_angle_asc) {
+        const float ascension = self->states[MYPAINT_BRUSH_STATE_ASCENSION];
+        const float asc_angle = RADIANS(ascension - view_rotation + offset_angle_adj);
+        dx += cos(asc_angle) * offset_angle_asc;
+        dy += sin(asc_angle) * offset_angle_asc;
+      }
+
+    //offset to one side of view orientation
+    const float view_offset = self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_VIEW];
+    if (view_offset) {
+        const float view_angle = RADIANS(view_rotation + offset_angle_adj);
+        dx += cos(-view_angle) * view_offset;
+        dy += sin(-view_angle) * view_offset;
+    }
+
+    //offset mirrored to sides of direction
+    const float offset_dir_mirror = MAX(0.0, self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2]);
+    if (offset_dir_mirror) {
+        const float brush_flip = self->states[MYPAINT_BRUSH_STATE_FLIP];
+        const float dir_mirror_angle = RADIANS(angle_deg + offset_angle_adj * brush_flip);
+        const float offset_factor = offset_dir_mirror * brush_flip;
+        dx += cos(dir_mirror_angle) * offset_factor;
+        dy += sin(dir_mirror_angle) * offset_factor;
+    }
+
+    //offset mirrored to sides of ascension angle
+    const float offset_asc_mirror = MAX(0.0, self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_ASC]);
+    if (offset_asc_mirror) {
+        const float ascension = self->states[MYPAINT_BRUSH_STATE_ASCENSION];
+        const float brush_flip = self->states[MYPAINT_BRUSH_STATE_FLIP];
+        const float asc_angle = RADIANS(ascension - view_rotation + offset_angle_adj * brush_flip);
+        const float offset_factor = brush_flip * offset_asc_mirror;
+        dx += cos(asc_angle) * offset_factor;
+        dy += sin(asc_angle) * offset_factor;
+    }
+
+    //offset mirrored to sides of view orientation
+    const float offset_view_mirror = MAX(0.0, self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_VIEW]);
+    if (offset_view_mirror) {
+        const float brush_flip = self->states[MYPAINT_BRUSH_STATE_FLIP];
+        const float offset_factor = brush_flip * offset_view_mirror;
+        const float offset_angle_rad = RADIANS(view_rotation + offset_angle_adj);
+        dx += cos(-offset_angle_rad) * offset_factor;
+        dy += sin(-offset_angle_rad) * offset_factor;
+    }
+    // Clamp the final offsets to avoid potential memory issues (extreme memory use from redraws)
+    // Allow offsets up to the 1080 * 3 pixels. Unlikely to hamper anyone artistically.
+    const float lim = 3240;
+    const float base_mul = base_radius * offset_mult;
+    Offsets offs = {CLAMP(dx * base_mul, -lim, lim),  CLAMP(dy * base_mul, -lim, lim)};
+    return offs;
+}
+
   // This function runs a brush "simulation" step. Usually it is
   // called once or twice per dab. In theory the precision of the
   // "simulation" gets better when it is called more often. In
@@ -723,65 +811,12 @@ mypaint_brush_set_state(MyPaintBrush *self, MyPaintBrushState i, float value)
     x = self->states[MYPAINT_BRUSH_STATE_ACTUAL_X];
     y = self->states[MYPAINT_BRUSH_STATE_ACTUAL_Y];
 
-    float base_radius = fastexp(mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC]));
-    float offset_mult = fastexp(self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_MULTIPLIER]);
+    float base_radius = expf(mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC]));
 
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_X]) {
-      x += self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_X] * base_radius * offset_mult;
-    }
-
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_Y]) {
-      y += self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_Y] * base_radius * offset_mult;
-    }
-    
-    //Anti_Art offsets tweaked by BrienD.  Adjusted with ANGLE_ADJ and OFFSET_MULTIPLIER
-    
-    //offset to one side of direction
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE]) {
-      x += cos((fmodf ((atan2f(self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DY], self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DX]) ) / (2 * M_PI) * 360 - 90, 360.0) + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ])* M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE] * offset_mult;
-      y += sin((fmodf ((atan2f(self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DY], self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DX]) ) / (2 * M_PI) * 360 - 90, 360.0) + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ])* M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE] * offset_mult;
-    }
-
-    //offset to one side of ascension angle
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ASC]) {
-      x += cos((self->states[MYPAINT_BRUSH_STATE_ASCENSION] - self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ]) * M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ASC] * offset_mult;
-      y += sin((self->states[MYPAINT_BRUSH_STATE_ASCENSION] - self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ]) * M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ASC] * offset_mult;
-      }
-
-    //offset to one side of view orientation
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_VIEW]) {
-      x += sin((self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + 90 + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ]) * M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_VIEW] * offset_mult;
-      y += cos((self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + 90 + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ]) * M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_VIEW] * offset_mult;
-    }
-
-    //offset mirrored to sides of direction
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2]) {
-      
-      if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2] < 0) {
-        self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2] = 0;
-      }
-      x += cos((fmodf ((atan2f(self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DY], self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DX]) ) / (2 * M_PI) * 360 - 90, 360.0) + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ] * self->states[MYPAINT_BRUSH_STATE_FLIP])* M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2] * offset_mult * self->states[MYPAINT_BRUSH_STATE_FLIP];
-      y += sin((fmodf ((atan2f(self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DY], self->states[MYPAINT_BRUSH_STATE_DIRECTION_ANGLE_DX]) ) / (2 * M_PI) * 360 - 90, 360.0) + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ] * self->states[MYPAINT_BRUSH_STATE_FLIP])* M_PI / 180) * base_radius * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2] * offset_mult * self->states[MYPAINT_BRUSH_STATE_FLIP];
-    }
-
-    //offset mirrored to sides of ascension angle
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_ASC]) {
-      
-      if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_ASC] < 0) {
-        self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_ASC] = 0;
-      }
-      x += cos((self->states[MYPAINT_BRUSH_STATE_ASCENSION] - self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ] * self->states[MYPAINT_BRUSH_STATE_FLIP]) * M_PI / 180) * base_radius * self->states[MYPAINT_BRUSH_STATE_FLIP] * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_ASC] * offset_mult;
-      y += sin((self->states[MYPAINT_BRUSH_STATE_ASCENSION] - self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ] * self->states[MYPAINT_BRUSH_STATE_FLIP]) * M_PI / 180) * base_radius * self->states[MYPAINT_BRUSH_STATE_FLIP] * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_ASC] * offset_mult;
-    }
-
-    //offset mirrored to sides of view orientation
-    if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_VIEW]) {
-      if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_VIEW] < 0) {
-        self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_VIEW] = 0;
-      }
-      x += sin((self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + 90 + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ]) * M_PI / 180) * base_radius * self->states[MYPAINT_BRUSH_STATE_FLIP] * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_VIEW] * offset_mult;
-      y += cos((self->states[MYPAINT_BRUSH_STATE_VIEWROTATION] + 90 + self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_ADJ]) * M_PI / 180) * base_radius * self->states[MYPAINT_BRUSH_STATE_FLIP] * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_ANGLE_2_VIEW] * offset_mult;
-    }
+    // Directional offsets
+    Offsets offs = directional_offsets(self, base_radius);
+    x += offs.x;
+    y += offs.y;
 
     if (self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_BY_SPEED]) {
       x += self->states[MYPAINT_BRUSH_STATE_NORM_DX_SLOW] * self->settings_value[MYPAINT_BRUSH_SETTING_OFFSET_BY_SPEED] * 0.1 / self->states[MYPAINT_BRUSH_STATE_VIEWZOOM];
