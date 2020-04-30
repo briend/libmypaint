@@ -779,7 +779,7 @@ Offsets directional_offsets(MyPaintBrush *self, float base_radius) {
     if (self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE] < 0) self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE] = 0;
     opaque = self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE] * self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE_MULTIPLY];
     opaque = CLAMP(opaque, 0.0, 1.0);
-    volume = MAX(0.0, self->settings_value[MYPAINT_BRUSH_SETTING_VOLUME]);
+    
     //if (opaque == 0.0) return FALSE; <-- cannot do that, since we need to update smudge state.
     if (self->settings_value[MYPAINT_BRUSH_SETTING_OPAQUE_LINEARIZE]) {
       // OPTIMIZE: no need to recalculate this for each dab
@@ -812,7 +812,7 @@ Offsets directional_offsets(MyPaintBrush *self, float base_radius) {
     y = self->states[MYPAINT_BRUSH_STATE_ACTUAL_Y];
 
     float base_radius = expf(mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC]));
-
+    volume = CLAMP(expf(self->settings_value[MYPAINT_BRUSH_SETTING_VOLUME]), 0.0, base_radius * 50.0);
     // Directional offsets
     Offsets offs = directional_offsets(self, base_radius);
     x += offs.x;
