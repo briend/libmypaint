@@ -358,7 +358,7 @@ void draw_dab_pixels_BlendMode_LockAlpha_Paint (float * mask,
         float opa_b = 1.0-opa_a; // bottomAlpha
         
         opa_a *= rgba[a_chan];
-        for (int i=0; i<a_chan-1; i++){    
+        for (int i=0; i<a_chan; i++){
           rgba[i] = (opa_a*brushcolor[i] + opa_b*rgba[i]);
         }
 
