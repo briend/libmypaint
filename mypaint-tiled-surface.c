@@ -865,16 +865,16 @@ void get_color (MyPaintSurface *surface, float x, float y,
 
     }
     
-    if (sum_color[MYPAINT_NUM_CHANS-1] > 0.0) {
-      for (int i=0; i<MYPAINT_NUM_CHANS-2; i++) {
-          sum_color[i] = sum_color[i] / sum_color[MYPAINT_NUM_CHANS-1];
-          }
-    } else {
-      for (int i=0; i<MYPAINT_NUM_CHANS; i++) {
-          sum_color[i] = 0.0f;
-          }
-    }
-    
+/*    if (sum_color[MYPAINT_NUM_CHANS-1] > 0.0) {*/
+/*      for (int i=0; i<MYPAINT_NUM_CHANS-2; i++) {*/
+/*          sum_color[i] = sum_color[i] / sum_color[MYPAINT_NUM_CHANS-1];*/
+/*          }*/
+/*    } else {*/
+/*      for (int i=0; i<MYPAINT_NUM_CHANS; i++) {*/
+/*          sum_color[i] = 0.0f;*/
+/*          }*/
+/*    }*/
+/*    */
     
 /*    if (sum_color[MYPAINT_NUM_CHANS-1] > 0.0) {*/
 /*        for (int i=0; i<MYPAINT_NUM_CHANS-1; i++) {*/

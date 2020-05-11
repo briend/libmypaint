@@ -83,12 +83,13 @@ void draw_dab_pixels_BlendMode_Normal_Paint (float *mask,
           float *rgba = rgba_buffer + (offset*MYPAINT_NUM_CHANS);
           float opa_a = mask[offset]*opacity; // topAlpha
           float opa_b = 1.0-opa_a; // bottomAlpha
-          for (int i=0; i < a_chan; i++) {
+          for (int i=0; i < a_chan-1; i++) {
             rgba[i] = opa_a * brushcolor[i] + opa_b*rgba[i];
           }
           //rgba[a_chan-1] = MAX((mask[offset] * volume) + brushcolor[a_chan-1] + rgba[a_chan-1], 0.0);
           rgba[a_chan] = opa_a + opa_b * rgba[a_chan];
-          rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1];
+          rgba[a_chan-1] = MAX(opa_a * brushcolor[a_chan-1], rgba[a_chan-1]); // use the larger vol, don't grow or shrink
+          //rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1];
           //printf("paint brushmode norm %f %f \n", rgba[a_chan-1], volume);
 
       }
@@ -308,7 +309,7 @@ void draw_dab_pixels_BlendMode_Normal_and_Eraser_Paint (float *mask,
         rgba[i] = (opa_a*brushcolor[i] + opa_b*rgba[i]);
       }
       //printf("bm bv is %f, canvas is %f \n", brushcolor[a_chan-1], rgba[a_chan-1]);
-      rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1];
+      //rgba[a_chan-1] = opa_a * volume + rgba[a_chan-1];
       
     }
   }

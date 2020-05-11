@@ -812,7 +812,7 @@ Offsets directional_offsets(MyPaintBrush *self, float base_radius) {
     y = self->states[MYPAINT_BRUSH_STATE_ACTUAL_Y];
 
     float base_radius = expf(mypaint_mapping_get_base_value(self->settings[MYPAINT_BRUSH_SETTING_RADIUS_LOGARITHMIC]));
-    volume = CLAMP(expf(self->settings_value[MYPAINT_BRUSH_SETTING_VOLUME]), 0.0, base_radius * 50.0);
+    volume = expf(self->settings_value[MYPAINT_BRUSH_SETTING_VOLUME]);
     // Directional offsets
     Offsets offs = directional_offsets(self, base_radius);
     x += offs.x;
@@ -1051,6 +1051,7 @@ Offsets directional_offsets(MyPaintBrush *self, float base_radius) {
       radius = radius + (snapped_radius - radius) * snapToPixel;
     }
     //printf("vol is %f\n", brushcolor[MYPAINT_NUM_CHANS-2]);
+    volume = CLAMP(volume, 0.0, base_radius * 50.0); // don't allow insanely spikey dabs
     return mypaint_surface_draw_dab (surface, x, y, radius, 1., 1., 1., opaque, hardness, eraser_target_alpha,
                               self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_RATIO], self->states[MYPAINT_BRUSH_STATE_ACTUAL_ELLIPTICAL_DAB_ANGLE],
                               self->settings_value[MYPAINT_BRUSH_SETTING_LOCK_ALPHA],

@@ -342,12 +342,12 @@ hsl_to_rgb_float (float *h_, float *s_, float *l_)
 float * mix_colors(float *a, float *b, float fac, float paint_mode)
 {
   static float result[MYPAINT_NUM_CHANS] = {0.0};
-  const int ac = MYPAINT_NUM_CHANS-1;
-  for (int i=0; i<ac-1; i++){
-    result[i] = a[i] * fac + (1.0-fac) * b[i] * b[ac];
+  //const int ac = MYPAINT_NUM_CHANS-1;
+  for (int i=0; i<MYPAINT_NUM_CHANS; i++){
+    result[i] = a[i] * fac + (1.0-fac) * b[i];// * b[ac];  why did we even un-premult??
   }
-  result[ac-1] = a[ac-1] * fac + (1.0-fac) * b[ac-1]; //volume
-  result[ac] = a[ac] * fac + (1.0-fac) * b[ac];
+  //result[ac-1] = a[ac-1] * fac + (1.0-fac) * b[ac-1]; //volume
+  //result[ac] = a[ac] * fac + (1.0-fac) * b[ac];
 
   return result;
 }
